@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use twosystems, please cite it as below."
+title: "twosystems: a calibrated watchman for AI coding agents"
+type: software
+authors:
+  - given-names: Shashikant
+    alias: shashikantdev3
+repository-code: "https://github.com/shashikantdev3/twosystems"
+url: "https://github.com/shashikantdev3/twosystems"
+license: Apache-2.0
+abstract: >-
+  twosystems, in development, will watch AI coding agent sessions (Claude
+  Code, GitHub Copilot in VS Code, Cursor, Windsurf), notice when the agent
+  is stuck or when the work has moved on, suggest a better next step, and
+  report token savings verified with a randomized holdout. A small decision
+  model (System 1) makes calibrated calls; a larger model (System 2, off by
+  default) and the user handle the uncertain cases.
+keywords:
+  - ai-agents
+  - claude-code
+  - github-copilot
+  - token-optimization
+  - decision-models
+  - calibration
+  - llm-cost

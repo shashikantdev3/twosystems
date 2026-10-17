@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+out/
+build/
+*.tsbuildinfo
+*.vsix
+
+# Test and coverage
+coverage/
+.vscode-test/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Local twosystems data (never commit real session logs)
+.twosystems/
+events.jsonl
+
+# Local Claude Code settings
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Logs
+*.log
+
+# Editors and operating systems
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
