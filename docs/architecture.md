@@ -49,6 +49,8 @@ Two files connect the parts. Their JSON Schemas live in [`schemas/`](../schemas/
 - **`events.jsonl`**: one line per event or decision, append-only, stored in `~/.twosystems/`.
 - **`decisions.lock`**: calibrated thresholds per decision, with the engine and model version they were fitted on.
 
+Both languages validate these files: the TypeScript core with ajv, the Python package with jsonschema. Each also runs checks a schema cannot express, such as every threshold naming a known label. Both apply the same strict rules: well-formed Unicode, the JSON grammar with every number fitting a 64-bit float, no repeated keys and at most 32 levels of nesting, RFC 3339 timestamps with a time zone and no leap seconds, plain UUIDs, a size limit and a value limit per record, and the same way of splitting a log into lines. Both are built to return the same fixed error messages, which never repeat a rejected value. The same valid, invalid and edge-case examples in `schemas/examples/` run in both test suites, with the expected messages written down, so any difference between the two on those cases fails CI. Each package keeps a committed copy of the schemas, and CI fails if a copy differs from the root.
+
 ## Adapters
 
 - **Claude Code plugin.** Runs inside Claude Code as a mod, reads exact usage, draws suggestions above the prompt and a receipt line under each answer. Receipts here can be verified.

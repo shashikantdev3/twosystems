@@ -17,7 +17,25 @@ twosystems is created and maintained by Shashikant ([@shashikantdev3](https://gi
 
 ## Development setup
 
-The toolchain arrives in Sprint 0 and Sprint 1. This section will describe how to install dependencies, run the tests and load the Claude Code plugin and VS Code extension locally.
+You need Node.js 22 or newer and [uv](https://docs.astral.sh/uv/).
+
+```
+# TypeScript core
+npm ci
+npm run build
+npm test
+
+# Python package
+cd python
+uv sync
+uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+```
+
+The JSON Schemas in `schemas/`, plus `LICENSE` and `NOTICE`, are the single source of truth. Each package keeps a copy so it can be published on its own. After changing any of them, run `npm run sync` and commit the copies; CI fails if they differ.
+
+Loading the Claude Code plugin and the VS Code extension locally will be described here when they arrive in Sprints 2 and 4.
 
 ## Commit messages
 

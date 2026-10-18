@@ -1,0 +1,23 @@
+{
+  "name": "twosystems-monorepo",
+  "private": true,
+  "description": "Monorepo for twosystems, a cheap, honest watchman for AI coding agents, created by Shashikant.",
+  "author": "Shashikant (https://github.com/shashikantdev3)",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/core"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync": "node scripts/sync-shared.mjs",
+    "check:sync": "node scripts/sync-shared.mjs --check",
+    "build": "npm run build --workspaces",
+    "test": "npm test --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

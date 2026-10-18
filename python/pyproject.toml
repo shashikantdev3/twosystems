@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "twosystems"
+version = "0.0.0"
+description = "Calibration and checking tools for twosystems, a cheap, honest watchman for AI coding agents."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Shashikant" }]
+maintainers = [{ name = "Shashikant" }]
+keywords = [
+  "claude-code",
+  "github-copilot",
+  "ai-agents",
+  "coding-agents",
+  "token-optimization",
+  "llm-cost",
+  "decision-models",
+  "calibration",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development",
+  "Typing :: Typed",
+]
+dependencies = ["jsonschema>=4.21"]
+
+[project.urls]
+Homepage = "https://github.com/shashikantdev3/twosystems"
+Repository = "https://github.com/shashikantdev3/twosystems"
+Issues = "https://github.com/shashikantdev3/twosystems/issues"
+Changelog = "https://github.com/shashikantdev3/twosystems/blob/main/CHANGELOG.md"
+
+[project.scripts]
+twosystems-calibrate = "twosystems.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/twosystems"]
+
+# The tests read the shared examples from the repository root, so they stay out
+# of the source archive.
+[tool.hatch.build.targets.sdist]
+include = ["src/twosystems", "README.md", "LICENSE", "NOTICE"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

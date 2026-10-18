@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shashikantdev3/twosystems/blob/main/schemas/events.schema.json",
+  "title": "twosystems event",
+  "description": "One line of the twosystems event log (~/.twosystems/events.jsonl). Part of twosystems, created by Shashikant. Every string is either an enum, a short identifier without spaces, a hash or a timestamp, so free text such as a prompt has nowhere to go.",
+  "type": "object",
+  "required": [
+    "v",
+    "id",
+    "ts",
+    "type",
+    "agent",
+    "session"
+  ],
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Schema version of this record."
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event happened, RFC 3339 with a time zone. Leap seconds are not accepted."
+    },
+    "type": {
+      "enum": [
+        "usage",
+        "decision",
+        "user_action"
+      ]
+    },
+    "agent": {
+      "enum": [
+        "claude-code",
+        "copilot",
+        "codex",
+        "cursor",
+        "windsurf",
+        "other"
+      ]
+    },
+    "agent_version": {
+      "$ref": "#/$defs/token"
+    },
+    "session": {
+      "$ref": "#/$defs/token",
+      "description": "Session identifier from the agent. Never a person's name or email."
+    },
+    "adapter_version": {
+      "$ref": "#/$defs/token",
+      "description": "Version of the twosystems adapter that wrote the record."
+    },
+    "usage": {
+      "$ref": "#/$defs/usage"
+    },
+    "decision": {
+      "$ref": "#/$defs/decision"
+    },
+    "user_action": {
+      "$ref": "#/$defs/user_action"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "usage"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "usage"
+        ],
+        "properties": {
+          "usage": true,
+          "decision": {
+            "not": {}
+          },
+          "user_action": {
+            "not": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "decision"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "usage": {
+            "not": {}
+          },
+          "decision": true,
+          "user_action": {
+            "not": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "user_action"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "user_action"
+        ],
+        "properties": {
+          "usage": {
+            "not": {}
+          },
+          "decision": {
+            "not": {}
+          },
+          "user_action": true
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:/@+-]+$",
+      "description": "A short identifier: letters, digits and . _ : / @ + - only, no spaces."
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rules",
+            "openrouter",
+            "ollama",
+            "llm"
+          ],
+          "description": "rules: plain code only. openrouter and ollama: a decision model (System 1). llm: a larger model (System 2)."
+        },
+        "model": {
+          "$ref": "#/$defs/token"
+        },
+        "model_version": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ],
+      "description": "Token usage for one model request, or a snapshot of the session.",
+      "properties": {
+        "source": {
+          "enum": [
+            "exact",
+            "estimate"
+          ],
+          "description": "exact: reported by the agent. estimate: computed by twosystems."
+        },
+        "request_id": {
+          "$ref": "#/$defs/token"
+        },
+        "model": {
+          "$ref": "#/$defs/token"
+        },
+        "input_tokens": {
+          "$ref": "#/$defs/count"
+        },
+        "output_tokens": {
+          "$ref": "#/$defs/count"
+        },
+        "cache_read_tokens": {
+          "$ref": "#/$defs/count"
+        },
+        "cache_write_tokens": {
+          "$ref": "#/$defs/count"
+        },
+        "context_tokens": {
+          "$ref": "#/$defs/count"
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "plan_percent_used": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "engine",
+        "state_hash",
+        "band",
+        "holdout"
+      ],
+      "description": "One judgement by twosystems. The state itself is not stored, only its hash.",
+      "properties": {
+        "name": {
+          "enum": [
+            "stuck",
+            "fresh_start"
+          ]
+        },
+        "engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "state_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signals": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "Names of the rule signals that triggered the check."
+        },
+        "probabilities": {
+          "type": "object",
+          "maxProperties": 16,
+          "propertyNames": {
+            "maxLength": 32,
+            "pattern": "^[a-z][a-z_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/probability"
+          }
+        },
+        "suggestion": {
+          "enum": [
+            "continue",
+            "compact",
+            "clear",
+            "pause"
+          ]
+        },
+        "band": {
+          "enum": [
+            "act",
+            "unsure",
+            "silent",
+            "not_evaluated"
+          ],
+          "description": "act: confident enough to suggest. unsure: below the act threshold. silent: nothing to suggest. not_evaluated: the engine failed or was unavailable."
+        },
+        "holdout": {
+          "type": "boolean",
+          "description": "true when twosystems stayed silent on purpose, as part of the randomized holdout."
+        },
+        "lock_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Cost of this decision itself, subtracted in the receipt."
+        },
+        "reason": {
+          "$ref": "#/$defs/code",
+          "description": "A short code such as timeout, no_key, offline or holdout. Never free text."
+        }
+      }
+    },
+    "user_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "action"
+      ],
+      "description": "What the user chose after a suggestion.",
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "action": {
+          "enum": [
+            "clear",
+            "compact",
+            "keep_going",
+            "stop",
+            "hint",
+            "continue",
+            "dismissed",
+            "ignored"
+          ]
+        }
+      }
+    }
+  }
+}

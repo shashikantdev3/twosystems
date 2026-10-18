@@ -2,16 +2,18 @@
 
 twosystems is built in short sprints, each about one week at an evenings-and-weekends pace. Every sprint ends with a review against its exit checks before anything is merged or published. Sprint lengths are targets, not promises.
 
+**Current sprint:** 0 (structure, docs, file formats, toolchain and CI done; accounts in progress).
+
 The two long poles are labelling real sessions for calibration and collecting enough real usage for the verified receipt. Both start early and run in the background from Sprint 2 onwards.
 
 ## Sprint 0: Foundations
 
 **Goal:** a repository that anyone can understand and build on.
 
-- Repository structure, README, licence, NOTICE, citation file, contributing and security guides.
+- Repository structure, README, license, NOTICE, citation file, contributing and security guides.
 - Architecture overview and the first decision records.
 - Shared contracts as JSON Schemas with examples: the event log (`events.jsonl`) and `decisions.lock`.
-- Tooling: npm workspaces with TypeScript and Vitest; uv with a Python project; continuous integration on Windows, macOS and Linux.
+- Tooling: npm workspaces with TypeScript and Node's built-in test runner; uv with a Python project; continuous integration on Windows, macOS and Linux.
 - Accounts: PyPI, Azure DevOps with a VS Code Marketplace publisher, Open VSX, and an OpenRouter test key.
 
 **Exit checks:** CI passes; every schema example validates; the README and architecture match each other.

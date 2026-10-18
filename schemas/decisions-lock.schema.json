@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shashikantdev3/twosystems/blob/main/schemas/decisions-lock.schema.json",
+  "title": "twosystems decisions.lock",
+  "description": "Calibrated thresholds for each twosystems decision, with the engine and question they were fitted on. Written by twosystems-calibrate, read by every adapter. Part of twosystems, created by Shashikant.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lock_version",
+    "created_at",
+    "created_by",
+    "holdout_rate",
+    "decisions"
+  ],
+  "properties": {
+    "lock_version": {
+      "const": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 with a time zone. Leap seconds are not accepted."
+    },
+    "created_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Tool and version that wrote the file."
+    },
+    "holdout_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5,
+      "description": "Share of eligible moments where twosystems stays silent on purpose. 0 turns the holdout off."
+    },
+    "decisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "stuck": {
+          "$ref": "#/$defs/decision"
+        },
+        "fresh_start": {
+          "$ref": "#/$defs/decision"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:/@+-]+$",
+      "description": "A short identifier: letters, digits and . _ : / @ + - only, no spaces."
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rules",
+            "openrouter",
+            "ollama",
+            "llm"
+          ]
+        },
+        "model": {
+          "$ref": "#/$defs/token"
+        },
+        "model_version": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "question_hash",
+        "labels",
+        "calibration",
+        "thresholds",
+        "target_false_alarm"
+      ],
+      "properties": {
+        "engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "question_hash": {
+          "$ref": "#/$defs/sha256",
+          "description": "Hash of the exact question wording. A different wording needs a new fit."
+        },
+        "labels": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z_]*$",
+            "maxLength": 32
+          },
+          "maxItems": 16
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "method": {
+              "enum": [
+                "none",
+                "temperature",
+                "platt",
+                "isotonic"
+              ]
+            },
+            "params": {
+              "type": "object",
+              "maxProperties": 16,
+              "propertyNames": {
+                "maxLength": 32,
+                "pattern": "^[a-z][a-z_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "array",
+                    "maxItems": 1024,
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                ]
+              },
+              "description": "Numbers only: a temperature, Platt coefficients, or isotonic breakpoints."
+            }
+          }
+        },
+        "thresholds": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "maxLength": 32,
+            "pattern": "^[a-z][a-z_]*$"
+          },
+          "description": "For each label that can be suggested: act when the calibrated probability is at least act; unsure when it is at least unsure; otherwise silent. Every key must be one of the labels, and unsure must not exceed act.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "act",
+              "unsure"
+            ],
+            "properties": {
+              "act": {
+                "$ref": "#/$defs/probability"
+              },
+              "unsure": {
+                "$ref": "#/$defs/probability"
+              }
+            }
+          }
+        },
+        "target_false_alarm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.5
+        },
+        "fitted_on": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "n",
+            "false_alarm_upper",
+            "confidence"
+          ],
+          "properties": {
+            "n": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Labelled moments used for the fit."
+            },
+            "false_alarm_upper": {
+              "$ref": "#/$defs/probability",
+              "description": "Upper confidence bound on the false-alarm rate when acting."
+            },
+            "coverage": {
+              "$ref": "#/$defs/probability",
+              "description": "Share of moments where the decision acts."
+            },
+            "confidence": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

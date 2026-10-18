@@ -4,7 +4,9 @@
 
 Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**.
 
-> **Status: early development.** Nothing is published yet. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
+[![ci](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml/badge.svg)](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml)
+
+> **Status: early development (Sprint 0).** The shared file formats and the toolchain are in place; the watchman itself is not built yet, and nothing is published. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
 
 ## The problem
 
@@ -70,7 +72,7 @@ docs/                  Architecture, decision records and roadmap
 
 ## Contributing
 
-Ideas, bug reports and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+Ideas, bug reports and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first; it also explains how to build and test from source.
 
 ## Citing
 
