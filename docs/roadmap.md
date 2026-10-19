@@ -2,7 +2,7 @@
 
 twosystems is built in short sprints, each about one week at an evenings-and-weekends pace. Every sprint ends with a review against its exit checks before anything is merged or published. Sprint lengths are targets, not promises.
 
-**Current sprint:** 0 (structure, docs, file formats, toolchain and CI done; accounts in progress).
+**Current sprint:** 1 (core engine, the `twosystems` command and the first alpha releases). Sprint 0 is done.
 
 The two long poles are labelling real sessions for calibration and collecting enough real usage for the verified receipt. Both start early and run in the background from Sprint 2 onwards.
 

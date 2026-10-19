@@ -4,7 +4,8 @@
 // cases in /schemas/examples, so any difference between the two fails CI.
 // Part of twosystems, created by Shashikant.
 import { readFileSync } from "node:fs";
-import { Ajv2020 } from "ajv/dist/2020.js";
+import { createRequire } from "node:module";
+import type { Ajv2020 as Ajv2020Type } from "ajv/dist/2020.js";
 import type { ErrorObject, ValidateFunction } from "ajv";
 
 export type Agent = "claude-code" | "copilot" | "codex" | "cursor" | "windsurf" | "other";
@@ -182,16 +183,34 @@ function allUnique(unique: boolean, items: unknown[]): boolean {
   return true;
 }
 
-const ajv = new Ajv2020({ allErrors: true, strict: true });
-ajv.addFormat("date-time", { type: "string", validate: isDateTime });
-ajv.addFormat("uuid", { type: "string", validate: isUuid });
-// ajv's own uniqueItems compares every pair of items, and takes a shortcut
-// that skips some duplicates when the item schema declares a type inline.
-ajv.removeKeyword("uniqueItems");
-ajv.addKeyword({ keyword: "uniqueItems", type: "array", schemaType: "boolean", errors: false, validate: allUnique });
+// ajv is loaded and the schemas compiled on first use, so a hook call that
+// writes nothing does not pay for them. ajv is CommonJS, so require keeps this synchronous.
+let ajvInstance: Ajv2020Type | undefined;
+function ajv(): Ajv2020Type {
+  if (ajvInstance === undefined) {
+    const { Ajv2020 } = createRequire(import.meta.url)("ajv/dist/2020.js") as typeof import("ajv/dist/2020.js");
+    const instance = new Ajv2020({ allErrors: true, strict: true });
+    instance.addFormat("date-time", { type: "string", validate: isDateTime });
+    instance.addFormat("uuid", { type: "string", validate: isUuid });
+    // ajv's own uniqueItems compares every pair of items, and takes a shortcut
+    // that skips some duplicates when the item schema declares a type inline.
+    instance.removeKeyword("uniqueItems");
+    instance.addKeyword({ keyword: "uniqueItems", type: "array", schemaType: "boolean", errors: false, validate: allUnique });
+    ajvInstance = instance;
+  }
+  return ajvInstance;
+}
 
-const eventValidator: ValidateFunction = ajv.compile(loadSchema("events.schema.json"));
-const lockValidator: ValidateFunction = ajv.compile(loadSchema("decisions-lock.schema.json"));
+let compiledEvent: ValidateFunction | undefined;
+let compiledLock: ValidateFunction | undefined;
+function eventValidator(): ValidateFunction {
+  compiledEvent ??= ajv().compile(loadSchema("events.schema.json"));
+  return compiledEvent;
+}
+function lockValidator(): ValidateFunction {
+  compiledLock ??= ajv().compile(loadSchema("decisions-lock.schema.json"));
+  return compiledLock;
+}
 
 const SAFE_FIELD = /^[A-Za-z0-9_.-]{1,32}$/;
 
@@ -496,8 +515,9 @@ const LOCK_LIMITS: Size = { values: MAX_LOCK_VALUES, bytes: MAX_LOCK_BYTES };
 export function validateEvent(value: unknown): ValidationResult {
   const problem = shapeProblem(value, EVENT_LIMITS);
   if (problem !== null) return { ok: false, errors: [problem] };
-  const ok = eventValidator(value);
-  return { ok, errors: ok ? [] : schemaErrors(eventValidator) };
+  const validate = eventValidator();
+  const ok = validate(value);
+  return { ok, errors: ok ? [] : schemaErrors(validate) };
 }
 
 /** Parse and validate one event from JSON text. A leading byte order mark is ignored. */
@@ -548,7 +568,8 @@ export function validateEventsJsonl(text: string): ValidationResult & { count: n
 export function validateLock(value: unknown): ValidationResult {
   const problem = shapeProblem(value, LOCK_LIMITS);
   if (problem !== null) return { ok: false, errors: [problem] };
-  if (!lockValidator(value)) return { ok: false, errors: schemaErrors(lockValidator) };
+  const validate = lockValidator();
+  if (!validate(value)) return { ok: false, errors: schemaErrors(validate) };
   const lock = value as DecisionsLock;
   const errors: string[] = [];
   for (const [name, decision] of Object.entries(lock.decisions)) {

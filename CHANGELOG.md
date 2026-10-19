@@ -6,7 +6,24 @@ All notable changes to twosystems are recorded here. The format follows
 
 ## [Unreleased]
 
-### Added
+## [0.1.0-alpha.1] - 2026-10-19
+
+First alpha: npm `twosystems` 0.1.0-alpha.1 and PyPI `twosystems` 0.1.0a1.
+
+### Added (Sprint 1: core engine)
+
+- Rule signals, computed locally for free: repeated failing command, repeated error, no file changed, many tool calls, large conversation, prompt cache probably expired, and a new prompt that looks like a different task.
+- A short summary of the moment for the decision model, redacted for secrets (provider keys, tokens, private keys, connection strings, passwords, emails and long random strings) and capped at 2,400 characters. The event log stores only its hash.
+- Decision engines: OpenRouter decisions API (Microsoft-Decision-1 by default, TypeSafe Jev), Ollama's local decisions endpoint (`/v1/systemone`), and a rules-only engine that needs no key.
+- Two typed questions (stuck, fresh start) with stable hashes for `decisions.lock`; built-in cautious thresholds until a fitted lock exists; fitted thresholds used only for the engine and question they were fitted on.
+- A 10% random holdout by default, and receipt maths: own cost, an estimate of context tokens not sent again, and a verified saving with a 95% bootstrap interval that is shown only when it clears zero.
+- The `twosystems` command: `hook` (Claude Code, GitHub Copilot in VS Code, the Copilot CLI and Codex; for Copilot only the stuck check in this alpha), `receipt` and `doctor` (with `--live` for one real call per question). The hook always answers with valid JSON and exit code 0.
+- Ready-made hook files in `packages/core/hooks/`: Claude Code, GitHub Copilot (one file for VS Code and the Copilot CLI) and Codex.
+- Local session notes between hook calls, redacted, cut to 400 characters, changed under a short lock, and removed once unused for seven days.
+- Tests for every module, a replay test over four recorded hook sessions, and a release workflow with trusted publishing to PyPI and npm.
+- Decision record 0005: one hook command, with local session notes.
+
+### Added (Sprint 0: foundations)
 
 - Repository structure, README, license (Apache-2.0), NOTICE and citation file.
 - Contributing guide, security policy, issue and pull request templates, CODEOWNERS.

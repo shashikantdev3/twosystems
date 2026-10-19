@@ -8,13 +8,15 @@ authors:
 repository-code: "https://github.com/shashikantdev3/twosystems"
 url: "https://github.com/shashikantdev3/twosystems"
 license: Apache-2.0
+version: 0.1.0-alpha.1
+date-released: "2026-10-19"
 abstract: >-
-  twosystems, in development, will watch AI coding agent sessions (Claude
-  Code, GitHub Copilot in VS Code, Cursor, Windsurf), notice when the agent
-  is stuck or when the work has moved on, suggest a better next step, and
-  report token savings verified with a randomized holdout. A small decision
-  model (System 1) makes calibrated calls; a larger model (System 2, off by
-  default) and the user handle the uncertain cases.
+  twosystems watches AI coding agent sessions (Claude Code, GitHub Copilot,
+  Codex), notices when the agent is stuck or when the work has moved on,
+  suggests a better next step, and reports token savings, with a verified
+  figure from a randomized holdout. Plain rules decide when to ask a small
+  decision model (System 1); the user makes the final call. Calibrated
+  thresholds and an optional larger model (System 2) are planned.
 keywords:
   - ai-agents
   - claude-code

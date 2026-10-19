@@ -54,7 +54,7 @@ Both languages validate these files: the TypeScript core with ajv, the Python pa
 ## Adapters
 
 - **Claude Code plugin.** Runs inside Claude Code as a mod, reads exact usage, draws suggestions above the prompt and a receipt line under each answer. Receipts here can be verified.
-- **Hook command.** A small command that agent hook systems call with JSON on standard input. It answers with allow, ask, a warning, or stop when the user has chosen stop. Used first for GitHub Copilot hooks in VS Code, later for Codex.
+- **Hook command.** `twosystems hook`, called by agent hook systems with JSON on standard input: Claude Code, GitHub Copilot (VS Code agent hooks and the Copilot CLI) and Codex. It reads both payload styles in use, keeps short redacted session notes between calls, asks before the next tool call when the agent seems stuck, and shows a note when a fresh start would help. It always answers with valid JSON and exit code 0. See [decision 0005](decisions/0005-hook-command-and-session-notes.md).
 - **VS Code extension.** Installs the hook file with the user's consent, keeps keys in VS Code secret storage, and shows the counter, buttons and receipt. GitHub Copilot does not give hooks or extensions exact token counts, so Copilot receipts are estimates.
 
 ## Failure behaviour
@@ -63,4 +63,4 @@ Suggestions are advice. If a decision model times out, a key is missing or the m
 
 ## Privacy
 
-Only the short summary sent to System 1 leaves the machine, after a redaction pass for secrets, and the same summary goes to System 2 if the user switches it on. A local decision model with System 2 off keeps everything on the machine. Event logs stay local.
+Only the short summary sent to System 1 leaves the machine, after a redaction pass for secrets, and the same summary goes to System 2 if the user switches it on. A local decision model or the rules engine, with System 2 off, keeps everything on the machine. Event logs and session notes stay local; session notes hold redacted, shortened text and are deleted after seven days.

@@ -1,0 +1,137 @@
+{
+  "description": "GitHub Copilot CLI hook payloads (camelCase): the stuck check asks before the fourth pytest run and the user lets it run.",
+  "agent": "copilot",
+  "steps": [
+    {
+      "event": "userPromptSubmitted",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404000000,
+        "cwd": "/work/api",
+        "prompt": "Fix the flaky login test"
+      },
+      "expect": "none"
+    },
+    {
+      "event": "preToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404005000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}"
+      },
+      "expect": "none"
+    },
+    {
+      "event": "postToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404010000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}",
+        "toolResult": {
+          "resultType": "failure",
+          "textResultForLlm": "FAILED tests/test_login.py::test_login - KeyError: 'token' (run 0)"
+        }
+      },
+      "expect": "none"
+    },
+    {
+      "event": "preToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404015000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}"
+      },
+      "expect": "none"
+    },
+    {
+      "event": "postToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404020000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}",
+        "toolResult": {
+          "resultType": "failure",
+          "textResultForLlm": "FAILED tests/test_login.py::test_login - KeyError: 'token' (run 1)"
+        }
+      },
+      "expect": "none"
+    },
+    {
+      "event": "preToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404025000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}"
+      },
+      "expect": "none"
+    },
+    {
+      "event": "postToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404030000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}",
+        "toolResult": {
+          "resultType": "failure",
+          "textResultForLlm": "FAILED tests/test_login.py::test_login - KeyError: 'token' (run 2)"
+        }
+      },
+      "expect": "none"
+    },
+    {
+      "event": "preToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404035000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}"
+      },
+      "expect": "ask"
+    },
+    {
+      "note": "the user lets the step run",
+      "event": "postToolUse",
+      "payload": {
+        "sessionId": "cli-5d2e",
+        "timestamp": 1792404040000,
+        "cwd": "/work/api",
+        "toolName": "bash",
+        "toolArgs": "{\"command\": \"pytest tests/test_login.py\"}",
+        "toolResult": {
+          "resultType": "success",
+          "textResultForLlm": "1 passed"
+        }
+      },
+      "expect": "none"
+    }
+  ],
+  "expect_events": [
+    "decision",
+    "user_action"
+  ],
+  "expect_user_actions": [
+    "keep_going"
+  ],
+  "expect_decision": {
+    "name": "stuck",
+    "band": "act",
+    "suggestion": "pause",
+    "signals": [
+      "repeated_command",
+      "repeated_error"
+    ]
+  }
+}

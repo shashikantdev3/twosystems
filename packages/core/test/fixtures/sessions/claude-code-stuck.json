@@ -1,0 +1,175 @@
+{
+  "description": "Claude Code hook payloads: the agent runs the same failing test three times, the stuck check asks before the fourth run, and the user answers with a new prompt.",
+  "agent": "claude-code",
+  "transcript": [
+    {
+      "type": "assistant",
+      "requestId": "req_1",
+      "message": {
+        "id": "msg_1",
+        "model": "claude-sonnet-5-5",
+        "usage": {
+          "input_tokens": 2100,
+          "cache_read_input_tokens": 30000,
+          "cache_creation_input_tokens": 900,
+          "output_tokens": 420
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "note": "session starts",
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "SessionStart",
+        "source": "startup",
+        "cwd": "/work/shop",
+        "timestamp": "2026-10-19T10:00:00.000Z"
+      },
+      "expect": "none"
+    },
+    {
+      "note": "first prompt",
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Make the checkout test pass, it fails with a 500.",
+        "transcript_path": "TRANSCRIPT",
+        "timestamp": "2026-10-19T10:00:01.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_0",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "timestamp": "2026-10-19T10:00:10.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PostToolUseFailure",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_0",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "error": "Exit code 1\nAssertionError: expected 200, got 500 at test/checkout.test.ts:40:7",
+        "timestamp": "2026-10-19T10:00:20.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_1",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "timestamp": "2026-10-19T10:00:30.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PostToolUseFailure",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_1",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "error": "Exit code 1\nAssertionError: expected 200, got 500 at test/checkout.test.ts:41:7",
+        "timestamp": "2026-10-19T10:00:40.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_2",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "timestamp": "2026-10-19T10:00:50.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PostToolUseFailure",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_2",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "error": "Exit code 1\nAssertionError: expected 200, got 500 at test/checkout.test.ts:42:7",
+        "timestamp": "2026-10-19T10:01:00.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_use_id": "toolu_3",
+        "tool_input": {
+          "command": "npm test -- checkout"
+        },
+        "timestamp": "2026-10-19T10:01:10.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "ask"
+    },
+    {
+      "note": "the user writes a hint instead of letting the step run",
+      "payload": {
+        "session_id": "7f3a2c1e-claude-stuck",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Stop. The 500 comes from the tax service mock, check test/mocks/tax.ts.",
+        "transcript_path": "TRANSCRIPT",
+        "timestamp": "2026-10-19T10:02:00.000Z",
+        "cwd": "/work/shop"
+      },
+      "expect": "none"
+    }
+  ],
+  "expect_events": [
+    "usage",
+    "decision",
+    "user_action"
+  ],
+  "expect_user_actions": [
+    "stop"
+  ],
+  "expect_decision": {
+    "name": "stuck",
+    "band": "act",
+    "suggestion": "pause",
+    "signals": [
+      "repeated_command",
+      "repeated_error"
+    ]
+  }
+}

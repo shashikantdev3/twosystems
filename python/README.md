@@ -1,8 +1,13 @@
 # twosystems (Python)
 
-Offline tools for calibrating and checking twosystems decisions. They will be published on PyPI as `twosystems`.
+Offline tools for calibrating and checking [twosystems](https://github.com/shashikantdev3/twosystems), a cheap, honest watchman for AI coding agents created by Shashikant. The watchman itself (the `twosystems` command and its hooks for Claude Code, GitHub Copilot and Codex) is on npm; this package works on the files it writes.
 
-**Status:** `twosystems-calibrate validate` works from source (Sprint 0). The calibration commands arrive in Sprint 3. Not yet published. See the [roadmap](https://github.com/shashikantdev3/twosystems/blob/main/docs/roadmap.md).
+**Status: alpha (0.1.0a1).** `twosystems-calibrate validate` works now. The calibration commands arrive in Sprint 3. See the [roadmap](https://github.com/shashikantdev3/twosystems/blob/main/docs/roadmap.md).
+
+```bash
+pip install --pre twosystems
+twosystems-calibrate validate events ~/.twosystems/events.jsonl
+```
 
 ## Commands
 

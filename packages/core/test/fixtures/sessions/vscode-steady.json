@@ -1,0 +1,147 @@
+{
+  "description": "VS Code agent hook payloads: steady progress on one task. twosystems stays silent and records only rough size estimates.",
+  "agent": "copilot",
+  "steps": [
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Add a dark mode toggle to the settings page",
+        "timestamp": "2026-10-19T10:00:00.000Z",
+        "cwd": "/w"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e0",
+        "tool_input": {
+          "files": [
+            "src/settings.tsx"
+          ]
+        },
+        "timestamp": "2026-10-19T10:00:10.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e0",
+        "tool_input": {
+          "files": [
+            "src/settings.tsx"
+          ]
+        },
+        "tool_response": "ok",
+        "timestamp": "2026-10-19T10:00:20.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e1",
+        "tool_input": {
+          "files": [
+            "src/theme.ts"
+          ]
+        },
+        "timestamp": "2026-10-19T10:00:30.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e1",
+        "tool_input": {
+          "files": [
+            "src/theme.ts"
+          ]
+        },
+        "tool_response": "ok",
+        "timestamp": "2026-10-19T10:00:40.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e2",
+        "tool_input": {
+          "files": [
+            "src/settings.test.tsx"
+          ]
+        },
+        "timestamp": "2026-10-19T10:00:50.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "editFiles",
+        "tool_use_id": "e2",
+        "tool_input": {
+          "files": [
+            "src/settings.test.tsx"
+          ]
+        },
+        "tool_response": "ok",
+        "timestamp": "2026-10-19T10:01:00.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "runInTerminal",
+        "tool_use_id": "r1",
+        "tool_input": {
+          "command": "npm test"
+        },
+        "tool_response": {
+          "exitCode": 0,
+          "output": "all passed"
+        },
+        "timestamp": "2026-10-19T10:01:30.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "vscode-chat-77",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Also remember the choice in local storage",
+        "timestamp": "2026-10-19T10:02:00.000Z",
+        "cwd": "/work/web"
+      },
+      "expect": "none"
+    }
+  ],
+  "expect_events": [
+    "usage"
+  ],
+  "expect_user_actions": []
+}

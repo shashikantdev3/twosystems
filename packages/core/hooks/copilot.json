@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event SessionStart",
+        "bash": "twosystems hook --agent copilot --event SessionStart",
+        "powershell": "twosystems hook --agent copilot --event SessionStart",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event UserPromptSubmit",
+        "bash": "twosystems hook --agent copilot --event UserPromptSubmit",
+        "powershell": "twosystems hook --agent copilot --event UserPromptSubmit",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event PreToolUse",
+        "bash": "twosystems hook --agent copilot --event PreToolUse",
+        "powershell": "twosystems hook --agent copilot --event PreToolUse",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event PostToolUse",
+        "bash": "twosystems hook --agent copilot --event PostToolUse",
+        "powershell": "twosystems hook --agent copilot --event PostToolUse",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event PostToolUseFailure",
+        "bash": "twosystems hook --agent copilot --event PostToolUseFailure",
+        "powershell": "twosystems hook --agent copilot --event PostToolUseFailure",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "PreCompact": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event PreCompact",
+        "bash": "twosystems hook --agent copilot --event PreCompact",
+        "powershell": "twosystems hook --agent copilot --event PreCompact",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "twosystems hook --agent copilot --event Stop",
+        "bash": "twosystems hook --agent copilot --event Stop",
+        "powershell": "twosystems hook --agent copilot --event Stop",
+        "timeout": 15,
+        "timeoutSec": 15
+      }
+    ]
+  }
+}

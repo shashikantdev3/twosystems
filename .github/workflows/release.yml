@@ -1,0 +1,94 @@
+# Release twosystems to PyPI and npm when a version tag is pushed, created by Shashikant.
+# Both registries use trusted publishing (OpenID Connect): no tokens are stored in GitHub.
+# Tag format: v0.1.0-alpha.1 (npm 0.1.0-alpha.1, PyPI 0.1.0a1) or v0.1.0.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Versions match the tag, tests pass
+    runs-on: ubuntu-latest
+    outputs:
+      npm_version: ${{ steps.versions.outputs.npm_version }}
+      npm_tag: ${{ steps.versions.outputs.npm_tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - id: versions
+        run: node scripts/check-release.mjs "${GITHUB_REF_NAME}"
+      - run: node scripts/sync-shared.mjs --check
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.13"
+      - working-directory: python
+        run: |
+          uv sync --locked
+          uv run pytest
+
+  pypi:
+    name: Publish to PyPI
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/twosystems
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - working-directory: python
+        run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist
+
+  npm:
+    name: Publish to npm
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/twosystems
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer.
+      - run: npm install --global npm@latest
+      - run: npm ci
+      - run: npm run build
+      # The very first version of a new npm package has to be published by hand,
+      # so a version that already exists is skipped instead of failing the release.
+      - name: Publish unless this version is already on npm
+        env:
+          VERSION: ${{ needs.check.outputs.npm_version }}
+          TAG: ${{ needs.check.outputs.npm_tag }}
+        run: |
+          if npm view "twosystems@${VERSION}" version >/dev/null 2>&1; then
+            echo "twosystems@${VERSION} is already on npm; nothing to publish."
+          else
+            npm publish --workspace packages/core --tag "${TAG}"
+          fi

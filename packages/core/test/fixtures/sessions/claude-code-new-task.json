@@ -1,0 +1,101 @@
+{
+  "description": "Claude Code hook payloads: after a long session and a break longer than the cache lifetime, a prompt on a new topic gets a fresh-start note, and the user clears.",
+  "agent": "claude-code",
+  "transcript": [
+    {
+      "type": "assistant",
+      "requestId": "req_9",
+      "message": {
+        "id": "msg_9",
+        "model": "claude-sonnet-5-5",
+        "usage": {
+          "input_tokens": 3000,
+          "cache_read_input_tokens": 148000,
+          "cache_creation_input_tokens": 2000,
+          "output_tokens": 800
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "payload": {
+        "session_id": "9b1c-claude-newtask",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Refactor the payment service to use the new billing client",
+        "transcript_path": "TRANSCRIPT",
+        "timestamp": "2026-10-19T10:00:00.000Z",
+        "cwd": "/work/payments"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "9b1c-claude-newtask",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Edit",
+        "tool_use_id": "t1",
+        "tool_input": {
+          "file_path": "src/billing.ts"
+        },
+        "tool_response": {
+          "success": true
+        },
+        "timestamp": "2026-10-19T10:01:00.000Z",
+        "cwd": "/work/payments"
+      },
+      "expect": "none"
+    },
+    {
+      "payload": {
+        "session_id": "9b1c-claude-newtask",
+        "hook_event_name": "Stop",
+        "transcript_path": "TRANSCRIPT",
+        "timestamp": "2026-10-19T10:02:00.000Z",
+        "cwd": "/work/payments"
+      },
+      "expect": "none"
+    },
+    {
+      "note": "75 minutes later, a different task",
+      "payload": {
+        "session_id": "9b1c-claude-newtask",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write release notes for the Android app store listing",
+        "transcript_path": "TRANSCRIPT",
+        "timestamp": "2026-10-19T11:17:00.000Z",
+        "cwd": "/work/payments"
+      },
+      "expect": "note"
+    },
+    {
+      "note": "the user runs /clear, which starts a new session",
+      "payload": {
+        "session_id": "9b1c-claude-newtask-2",
+        "hook_event_name": "SessionStart",
+        "source": "clear",
+        "timestamp": "2026-10-19T11:18:00.000Z",
+        "cwd": "/work/payments"
+      },
+      "expect": "none"
+    }
+  ],
+  "expect_events": [
+    "usage",
+    "decision",
+    "user_action"
+  ],
+  "expect_user_actions": [
+    "clear"
+  ],
+  "expect_decision": {
+    "name": "fresh_start",
+    "band": "act",
+    "suggestion": "clear",
+    "signals": [
+      "large_context",
+      "cache_expired",
+      "new_prompt_low_overlap"
+    ]
+  }
+}

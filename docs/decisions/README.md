@@ -8,3 +8,4 @@ Short records of decisions with lasting consequences: what was decided, why, and
 | [0002](0002-system-two-off-by-default.md) | System 2 is off by default | Accepted |
 | [0003](0003-verified-savings-by-holdout.md) | Verified savings come from a randomized holdout | Accepted |
 | [0004](0004-apache-2-license.md) | Apache License 2.0 | Accepted |
+| [0005](0005-hook-command-and-session-notes.md) | One hook command, with local session notes | Accepted |

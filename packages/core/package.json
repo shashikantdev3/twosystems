@@ -1,16 +1,19 @@
 {
   "name": "twosystems",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Core of twosystems: a cheap, honest watchman for AI coding agents. Shared file formats, decision engines and receipt maths.",
+  "version": "0.1.0-alpha.1",
+  "description": "A cheap, honest watchman for AI coding agents (Claude Code, GitHub Copilot, Codex): notices when the agent is stuck or a fresh start would save tokens, using a small decision model, and measures what it saved. Created by Shashikant.",
   "keywords": [
     "claude-code",
     "github-copilot",
+    "codex",
     "ai-agents",
     "coding-agents",
+    "agent-hooks",
     "token-optimization",
     "llm-cost",
     "decision-models",
+    "system-1",
+    "guardrails",
     "calibration"
   ],
   "homepage": "https://github.com/shashikantdev3/twosystems#readme",
@@ -25,6 +28,9 @@
   "license": "Apache-2.0",
   "author": "Shashikant (https://github.com/shashikantdev3)",
   "type": "module",
+  "bin": {
+    "twosystems": "bin/twosystems.js"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -38,7 +44,9 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "bin",
     "dist/src",
+    "hooks",
     "schemas",
     "README.md",
     "LICENSE",
@@ -46,9 +54,15 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test dist/test/contracts.test.js dist/test/edge-cases.test.js"
+    "test": "node --test \"dist/test/**/*.test.js\""
   },
   "dependencies": {
     "ajv": "^8.20.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "contributors": [
+    "Shashikant (https://github.com/shashikantdev3)"
+  ]
 }

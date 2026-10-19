@@ -6,7 +6,7 @@ Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**.
 
 [![ci](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml/badge.svg)](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml)
 
-> **Status: early development (Sprint 0).** The shared file formats and the toolchain are in place; the watchman itself is not built yet, and nothing is published. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
+> **Status: alpha (Sprint 1).** The engine and the `twosystems` command work with Claude Code, GitHub Copilot and Codex hooks, tested against recorded hook payloads but not yet in long real use. Thresholds are cautious defaults until calibration lands in Sprint 3. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
 
 ## The problem
 
@@ -16,22 +16,31 @@ Two habits fix most of this: start fresh when you switch to unrelated work, and 
 
 Many tools promise to cut tokens, but a tool's own counter is not your bill. In one independent test of 1,740 runs, rtk, a popular output compressor, counted 349 million tokens saved on its DeepSeek runs, yet cost per task did not fall: it stayed about the same with Claude Code and rose 17% with DeepSeek.[^2] A savings number is only useful if it has been checked.
 
-## What twosystems will do
+## What twosystems does
 
-1. **Stuck check.** When the agent keeps hitting the same error, edits the same files and the tests do not move, twosystems will pause and ask you: stop, add a hint, or continue. You decide how rare a false alarm must be.
-2. **Fresh-start check.** When a new prompt looks unrelated to the work in the session, or you come back after the cache has expired, it will show what continuing would cost compared with clearing or compacting, and let you choose.
-3. **Honest receipt.** It will report estimated savings, the tokens spent recovering context that was dropped, and a verified figure. The verified figure comes from a small random holdout: for about one moment in ten, twosystems stays silent on purpose, so results with and without it can be compared.
+1. **Stuck check.** When the agent keeps running the same failing command or meeting the same error, twosystems asks you before its next step: allow it to keep going, or deny it and give the agent a hint. From Sprint 3, calibration lets you decide how rare a false alarm must be.
+2. **Fresh-start check.** When a new prompt looks unrelated to the work in the session, the conversation is large, or you come back after the cache has expired, it suggests clearing or compacting and lets you choose.
+3. **Honest receipt.** It reports its own cost, estimated savings, and a verified figure. The verified figure comes from a small random holdout: for about one moment in ten, twosystems stays silent on purpose, so results with and without it can be compared. Recovery cost (tokens spent rebuilding context after a fresh start) is planned for Sprint 5.
+
+## Try the alpha
+
+```bash
+npm install --global twosystems@alpha
+twosystems doctor
+```
+
+Then add the hook file for your agent from [`packages/core/hooks/`](packages/core/hooks/): Claude Code, GitHub Copilot (VS Code and the Copilot CLI share one file; stuck check only in this alpha) or Codex. The [package README](packages/core/README.md) explains where each file goes and how to choose the decision model. `twosystems receipt` shows what it did.
 
 ## How it decides
 
 The name comes from the idea of two kinds of thinking, a fast one and a slow one.
 
 - **Plain rules** watch every turn on your machine, for free.
-- **System 1** is a small decision model, such as Microsoft-Decision-1, Jev, or an open model running locally. It is asked only when the rules see something suspicious, and it returns a probability rather than text. At OpenRouter's listed price ($0.042 per million input tokens, output free), a typical decision of about 3,000 tokens is estimated at about a hundredth of a cent. It never uses your Claude or Copilot plan.
+- **System 1** is a small decision model, such as Microsoft-Decision-1, Jev, or an open model running locally. It is asked only when the rules see something suspicious, and it returns a probability rather than text. At OpenRouter's listed price ($0.042 per million input tokens, output free), a decision of under 1,000 tokens costs about $0.00003. It never uses your Claude or Copilot plan.
 - **System 2** is a larger language model that can be switched on for the cases System 1 is unsure about. It is off by default.
-- **You** have the final say. In v1, twosystems never acts on its own: it shows a suggestion with buttons, and stops the agent only when you choose stop.
+- **You** have the final say. twosystems never acts on its own: it shows a suggestion, and the agent stops only when you choose to stop it.
 
-Thresholds are calibrated on labelled examples, so that "confident" means something measurable, and they are stored in a `decisions.lock` file so that a model update cannot quietly change behaviour.
+From Sprint 3, thresholds will be calibrated on labelled examples, so that "confident" means something measurable, and stored in a `decisions.lock` file so that a model update cannot quietly change behaviour. Until then, cautious built-in thresholds apply.
 
 ## Where it will run
 
@@ -40,9 +49,9 @@ Thresholds are calibrated on labelled examples, so that "confident" means someth
 | Claude Code plugin marketplace | Plugin with all three checks and the verified receipt | Planned for v1 |
 | VS Code Marketplace | Extension for GitHub Copilot users, plus a receipt view for Claude Code in VS Code | Planned for v1 |
 | Open VSX | The same extension for Cursor and Windsurf | Planned for v1 |
-| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`) | Planned for v1 |
-| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`label`, `fit`, `check`, `report`) | Planned for v1 |
-| Codex | Hooks support | Planned for v1.1 |
+| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`) | Alpha (Sprint 1) |
+| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`validate` now; `label`, `fit`, `check`, `report` in Sprint 3) | Alpha (Sprint 1) |
+| Codex | Hooks support through the `twosystems` command | Alpha, untested with a live session |
 
 ## Honest limits
 
@@ -53,7 +62,7 @@ Thresholds are calibrated on labelled examples, so that "confident" means someth
 
 ## Privacy
 
-Everything is logged locally, in `~/.twosystems/`. The only data that leaves your machine is a short summary of the moment being judged (a few thousand tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With a local model and System 2 off, nothing leaves your machine.
+Everything is logged locally, in `~/.twosystems/`. The event log holds no prompts or code, only decisions, sizes, costs and a hash of what was judged. Short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) stay in `~/.twosystems/sessions/` and are removed once unused for seven days (checked once a day while hooks run). The only data that leaves your machine is a short summary of the moment being judged (about 600 tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With the rules engine or a local model, nothing leaves your machine.
 
 ## Repository layout
 
