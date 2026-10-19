@@ -41,9 +41,9 @@ Hooks call `twosystems hook`. Ready-made hook files are in the package's [`hooks
 | Microsoft-Decision-1 or TypeSafe Jev on OpenRouter | `OPENROUTER_API_KEY`, and optionally `TWOSYSTEMS_MODEL=typesafe/jev-1.14` | A short summary of the moment (about 600 tokens at most), redacted for secrets |
 | A local decision model in Ollama 0.35+ (for example `nimble`, `clef-flash`, `tev1:4b`) | `TWOSYSTEMS_ENGINE=ollama`, `TWOSYSTEMS_MODEL=nimble` | Nothing, unless Ollama runs elsewhere or you use a `:cloud` model |
 
-At OpenRouter's listed price on 19 October 2026 ($0.042 per million input tokens, output free), one decision costs about $0.00003. Decisions run only when a rule fires, and never use your Claude or Copilot plan.
+At OpenRouter's listed price on 19 October 2026 ($0.042 per million input tokens, output free), one decision costs about $0.00003. In a live check that day with twosystems' own questions, Decision-1 cost $0.00001 and Jev $0.00002 per call, answering in 0.5 to 2.7 seconds. Decisions run only when a rule fires, and never use your Claude or Copilot plan.
 
-Other settings: `TWOSYSTEMS_HOLDOUT` (default 0.1), `TWOSYSTEMS_TIMEOUT_MS` (default 3000, at most 10000), `TWOSYSTEMS_CACHE_TTL_S` (default 3600 for Claude Code on a Claude plan, 300 otherwise), `TWOSYSTEMS_HOME` (default `~/.twosystems`), `TWOSYSTEMS_LOCK`, `OLLAMA_HOST`. Run `twosystems --help` for the full list, and `twosystems doctor --live` to try the decision model once.
+Other settings: `TWOSYSTEMS_HOLDOUT` (default 0.1), `TWOSYSTEMS_TIMEOUT_MS` (default 5000, at most 10000), `TWOSYSTEMS_CACHE_TTL_S` (default 3600 for Claude Code on a Claude plan, 300 otherwise), `TWOSYSTEMS_HOME` (default `~/.twosystems`), `TWOSYSTEMS_LOCK`, `OLLAMA_HOST`. Run `twosystems --help` for the full list, and `twosystems doctor --live` to try the decision model once.
 
 ## Privacy
 
@@ -64,7 +64,7 @@ const result = await evaluate({
   engine,
   lock: builtInLock(engine.info),
   holdoutRate: 0.1,
-  timeoutMs: 3000,
+  timeoutMs: 5000,
   cacheTtlSeconds: 300,
   agent: "other",
   session: "my-session",

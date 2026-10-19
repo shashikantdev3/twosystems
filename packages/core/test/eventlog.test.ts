@@ -61,7 +61,7 @@ test("settings come from the environment with safe defaults", () => {
   const plain = readConfig({ HOME: "/home/u" });
   assert.equal(plain.engine, "rules");
   assert.equal(plain.holdoutRate, 0.1);
-  assert.equal(plain.timeoutMs, 3000);
+  assert.equal(plain.timeoutMs, 5000);
   assert.equal(cacheTtlFor(plain, "claude-code"), 3600);
   assert.equal(cacheTtlFor(plain, "copilot"), 300);
   assert.deepEqual(plain.warnings, []);

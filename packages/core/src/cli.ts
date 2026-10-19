@@ -33,7 +33,7 @@ Settings (environment variables):
   TWOSYSTEMS_ENGINE        rules, openrouter or ollama (default: openrouter with a key, else rules)
   TWOSYSTEMS_MODEL         Model id, for example microsoft/microsoft-decision-1-20261009 or nimble
   TWOSYSTEMS_HOLDOUT       Share of moments kept silent to measure real savings (default 0.1)
-  TWOSYSTEMS_TIMEOUT_MS    Longest wait for the decision model (default 3000)
+  TWOSYSTEMS_TIMEOUT_MS    Longest wait for the decision model, in ms (default 5000, at most 10000)
   TWOSYSTEMS_CACHE_TTL_S   Prompt cache lifetime in seconds (default 3600 for Claude Code, else 300)
   TWOSYSTEMS_HOME          Data folder (default ~/.twosystems)
   TWOSYSTEMS_LOCK          decisions.lock to use (default ~/.twosystems/decisions.lock)

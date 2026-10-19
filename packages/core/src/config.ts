@@ -61,7 +61,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ollamaHost: env["OLLAMA_HOST"]?.trim() || "http://127.0.0.1:11434",
     holdoutRate: number(env, "TWOSYSTEMS_HOLDOUT", DEFAULT_HOLDOUT_RATE, 0, 0.5, warnings),
     // Hook files give the command 15 seconds in all, so the model gets at most 10.
-    timeoutMs: number(env, "TWOSYSTEMS_TIMEOUT_MS", 3000, 100, 10_000, warnings),
+    // A model's first call of the day can take close to 3 seconds, so the default allows 5.
+    timeoutMs: number(env, "TWOSYSTEMS_TIMEOUT_MS", 5000, 100, 10_000, warnings),
     warnings,
   };
   const ttl = number(env, "TWOSYSTEMS_CACHE_TTL_S", -1, 30, 86_400, warnings);

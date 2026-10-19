@@ -15,8 +15,11 @@ export const SESSION_LIMITS = {
   observations: 80,
   textChars: 400,
   keepDays: 7,
-  /** Longest wait for another hook to finish with the same notes. Holding the lock takes milliseconds. */
-  lockWaitMs: 1000,
+  /**
+   * Longest wait for another hook to finish with the same notes. Holding the lock
+   * takes milliseconds, but Windows file systems and virus scanners can slow it down.
+   */
+  lockWaitMs: 3000,
   /** A lock older than this was left by a hook that died, and is taken over. */
   staleLockMs: 3000,
 } as const;
@@ -107,13 +110,33 @@ async function readNotes(path: string, agent: string, session: string): Promise<
   }
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// On Windows, a file or folder that another process (often a virus scanner) has
+// open can briefly refuse to be renamed, created or removed. These errors pass.
+const BUSY = new Set(["EPERM", "EACCES", "EBUSY"]);
+
+function isBusy(error: unknown): boolean {
+  return BUSY.has((error as NodeJS.ErrnoException).code ?? "");
+}
+
 async function writeAtomic(path: string, text: string): Promise<void> {
   const temp = `${path}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
   await writeFile(temp, text, { encoding: "utf8", mode: 0o600 });
-  await rename(temp, path);
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await rename(temp, path);
+      return;
+    } catch (error) {
+      if (!isBusy(error) || attempt >= 20) {
+        await rm(temp, { force: true }).catch(() => undefined);
+        throw error;
+      }
+      await sleep(5 + attempt * 5);
+    }
+  }
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Hold a lock while fn runs. The lock is a folder, which the file system
@@ -129,13 +152,20 @@ async function withLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
       await mkdir(lock);
       held = true;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") break;
+      // EEXIST: another hook holds the lock. A busy error on Windows usually means the
+      // previous lock folder is still being deleted. Both mean: wait and try again.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EEXIST" && !isBusy(error)) break;
+      if (Date.now() > deadline) break;
+      if (code !== "EEXIST") {
+        await sleep(5 + Math.random() * 10);
+        continue;
+      }
       const age = await stat(lock).then(
         (s) => Date.now() - s.mtimeMs,
         () => 0,
       );
-      if (age > SESSION_LIMITS.staleLockMs) await rm(lock, { recursive: true, force: true });
-      else if (Date.now() > deadline) break;
+      if (age > SESSION_LIMITS.staleLockMs) await rm(lock, { recursive: true, force: true }).catch(() => undefined);
       else await sleep(5 + Math.random() * 10);
     }
   }
