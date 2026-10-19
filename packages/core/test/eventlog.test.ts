@@ -1,12 +1,12 @@
 // Tests for the event log and settings. Part of twosystems, created by Shashikant.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cacheTtlFor, readConfig } from "../src/config.js";
 import type { TwoSystemsEvent } from "../src/contracts.js";
-import { appendEvent, isToken, newId, readEvents, timestamp } from "../src/eventlog.js";
+import { appendEvent, isToken, newId, readEventLog, readEvents, timestamp } from "../src/eventlog.js";
 
 const event = (session = "s-1"): TwoSystemsEvent => ({
   v: 1,
@@ -78,4 +78,24 @@ test("settings come from the environment with safe defaults", () => {
   assert.equal(bad.model, undefined);
   assert.equal(bad.warnings.length, 3);
   assert.ok(bad.warnings.every((w) => !w.includes("magic") && !w.includes("0.9")));
+});
+
+test("the whole log is events.jsonl plus the per-session files in events.d, each event once", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "twosystems-log-"));
+  const eventsPath = join(dir, "events.jsonl");
+  const eventsDir = join(dir, "events.d");
+  const shared = event("hook-session");
+  await appendEvent(eventsPath, shared);
+  await mkdir(eventsDir);
+  const a = event("plugin-a");
+  const b = event("plugin-b");
+  await writeFile(join(eventsDir, "claude-code-a.jsonl"), `${JSON.stringify(a)}\n${JSON.stringify(shared)}\nnot json\n`);
+  await writeFile(join(eventsDir, "claude-code-b.jsonl"), `${JSON.stringify(b)}\n`);
+  await writeFile(join(eventsDir, "notes.txt"), "ignored");
+  const { events, problems } = await readEventLog({ eventsPath, eventsDir });
+  assert.deepEqual(events.map((e) => e.session), ["hook-session", "plugin-a", "plugin-b"]);
+  assert.deepEqual(problems, ["claude-code-a.jsonl line 3: not valid JSON"]);
+  assert.deepEqual(await readEventLog({ eventsPath: join(dir, "none.jsonl"), eventsDir: join(dir, "none.d") }), { events: [], problems: [] });
+  assert.equal((await readEventLog({ eventsPath, eventsDir: join(eventsDir, "notes.txt") })).events.length, 1);
+  assert.equal(readConfig({ TWOSYSTEMS_HOME: "/data" }).eventsDir, join("/data", "events.d"));
 });

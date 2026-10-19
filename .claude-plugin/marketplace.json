@@ -1,0 +1,14 @@
+{
+  "name": "twosystems",
+  "description": "twosystems, a cheap, honest watchman for AI coding agents, created by Shashikant.",
+  "owner": { "name": "Shashikant", "url": "https://github.com/shashikantdev3" },
+  "plugins": [
+    {
+      "name": "twosystems",
+      "source": "./packages/claude-code",
+      "description": "Asks before the next step when the agent seems stuck, suggests /clear or /compact when a fresh start would save tokens, and keeps an honest receipt.",
+      "category": "productivity",
+      "tags": ["tokens", "cost", "context", "stuck", "receipt"]
+    }
+  ]
+}

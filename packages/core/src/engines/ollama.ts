@@ -3,15 +3,15 @@
 // as nimble, clef-flash or tev1. Nothing leaves the machine unless the host is
 // remote or the model is an Ollama cloud model.
 // Part of twosystems, created by Shashikant.
-import type { Engine as EngineInfo } from "../contracts.js";
+import type { Engine as EngineInfo } from "../model.js";
 import type { DecisionQuestion } from "../questions.js";
 import { parseDecisionsResponse } from "./openrouter.js";
-import { type DecisionEngine, type EngineAnswer, EngineError } from "./types.js";
+import { type DecisionEngine, type EngineAnswer, EngineError, type FetchLike, type FetchResponseLike, platformFetch } from "./types.js";
 
 export interface OllamaOptions {
   model: string | undefined;
   host?: string;
-  fetch?: typeof fetch;
+  fetch?: FetchLike;
 }
 
 /** True when the host is this machine. */
@@ -41,8 +41,9 @@ export class OllamaEngine implements DecisionEngine {
     const model = this.options.model;
     if (!model) throw new EngineError("no_model", "No Ollama model chosen. Set TWOSYSTEMS_MODEL, for example nimble.");
     const { question } = request;
-    const doFetch = this.options.fetch ?? fetch;
-    let response: Response;
+    const doFetch = this.options.fetch ?? platformFetch();
+    if (doFetch === undefined) throw new EngineError("network", "No way to make web requests here.");
+    let response: FetchResponseLike;
     try {
       response = await doFetch(`${this.host}/v1/systemone`, {
         method: "POST",

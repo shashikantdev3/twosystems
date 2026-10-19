@@ -1,6 +1,6 @@
 // decisions.lock: which thresholds apply, and how a probability becomes a band.
+// Reading the file from disk is in lockfile.ts, so this module runs anywhere.
 // Part of twosystems, created by Shashikant.
-import { readFile } from "node:fs/promises";
 import type {
   Band,
   DecisionName,
@@ -9,8 +9,7 @@ import type {
   LockDecision,
   Suggestion,
   Thresholds,
-} from "./contracts.js";
-import { MAX_LOCK_BYTES, validateLockText } from "./contracts.js";
+} from "./model.js";
 import { LABEL_SUGGESTION, QUESTIONS, labelsOf, questionHash, sha256 } from "./questions.js";
 
 /**
@@ -67,26 +66,6 @@ export function lockHash(lock: DecisionsLock): string {
 export function builtInLock(engine: EngineInfo): LoadedLock {
   const lock = defaultLock(engine);
   return { lock, hash: lockHash(lock), source: "built-in" };
-}
-
-/**
- * Read and validate a decisions.lock file. Returns null when the file does not
- * exist; throws an Error listing the problems when it is invalid.
- */
-export async function readLock(path: string): Promise<LoadedLock | null> {
-  let text: string;
-  try {
-    const bytes = await readFile(path);
-    if (bytes.length > MAX_LOCK_BYTES + 3) throw new Error(`${path} is longer than ${MAX_LOCK_BYTES} bytes`);
-    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-  const result = validateLockText(text);
-  if (!result.ok) throw new Error(`${path} is not a valid decisions.lock: ${result.errors.slice(0, 5).join("; ")}`);
-  const lock = JSON.parse(text.replace(/^﻿/, "")) as DecisionsLock;
-  return { lock, hash: lockHash(lock), source: path };
 }
 
 /** Why a lock entry cannot be used for this engine and question, or null when it can. */

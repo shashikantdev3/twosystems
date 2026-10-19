@@ -1,6 +1,6 @@
 // What every decision engine provides, and how engines report failure.
 // Part of twosystems, created by Shashikant.
-import type { Engine as EngineInfo } from "../contracts.js";
+import type { Engine as EngineInfo } from "../model.js";
 import type { DecisionQuestion } from "../questions.js";
 import type { SignalName } from "../signals.js";
 
@@ -24,6 +24,27 @@ export interface DecisionEngine {
     signals: readonly SignalName[];
     signal: AbortSignal;
   }): Promise<EngineAnswer>;
+}
+
+/** The part of an HTTP response an engine reads. Node's fetch Response fits it. */
+export interface FetchResponseLike {
+  readonly ok: boolean;
+  readonly status: number;
+  text(): Promise<string>;
+}
+
+/**
+ * How an engine makes its one POST request. Node's global fetch fits it; the
+ * Claude Code plugin passes its host's fetch instead.
+ */
+export type FetchLike = (
+  url: string,
+  init: { method: "POST"; headers: Record<string, string>; body: string; signal: AbortSignal },
+) => Promise<FetchResponseLike>;
+
+/** The platform's fetch where there is one (Node 18 and newer). */
+export function platformFetch(): FetchLike | undefined {
+  return (globalThis as { fetch?: FetchLike }).fetch;
 }
 
 /** Why an engine gave no answer. Stored as the decision's reason code. */

@@ -6,7 +6,7 @@ Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**.
 
 [![ci](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml/badge.svg)](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml)
 
-> **Status: alpha (Sprint 1).** The engine and the `twosystems` command work with Claude Code, GitHub Copilot and Codex hooks, tested against recorded hook payloads but not yet in long real use. Thresholds are cautious defaults until calibration lands in Sprint 3. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
+> **Status: alpha (Sprint 2).** The Claude Code plugin runs all three checks inside Claude Code, and the `twosystems` command works with GitHub Copilot and Codex hooks. Both are tested, but not yet in long real use. Thresholds are cautious defaults until calibration lands in Sprint 3. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
 
 ## The problem
 
@@ -24,12 +24,22 @@ Many tools promise to cut tokens, but a tool's own counter is not your bill. In 
 
 ## Try the alpha
 
+**Claude Code** (terminal and Desktop app; VS Code extension with a pane in place of the band; Claude Code 2.1.303 or newer), at the Claude Code prompt:
+
+```
+/plugin install twosystems --marketplace shashikantdev3/twosystems
+```
+
+The [plugin README](packages/claude-code/README.md) covers settings, what you will see and how to remove it. `/twosystems` shows the receipt.
+
+**GitHub Copilot and Codex** (Node.js 22 or newer):
+
 ```bash
 npm install --global twosystems@alpha
 twosystems doctor
 ```
 
-Then add the hook file for your agent from [`packages/core/hooks/`](packages/core/hooks/): Claude Code, GitHub Copilot (VS Code and the Copilot CLI share one file; stuck check only in this alpha) or Codex. The [package README](packages/core/README.md) explains where each file goes and how to choose the decision model. `twosystems receipt` shows what it did.
+Then add the hook file for your agent from [`packages/core/hooks/`](packages/core/hooks/): GitHub Copilot (VS Code and the Copilot CLI share one file; stuck check only in this alpha) or Codex. The [package README](packages/core/README.md) explains where each file goes and how to choose the decision model. `twosystems receipt` shows what it did.
 
 ## How it decides
 
@@ -46,11 +56,11 @@ From Sprint 3, thresholds will be calibrated on labelled examples, so that "conf
 
 | Channel | What ships there | Status |
 |---|---|---|
-| Claude Code plugin marketplace | Plugin with all three checks and the verified receipt | Planned for v1 |
+| Claude Code (this repository's marketplace) | Plugin with all three checks and receipts from exact token counts | Alpha (Sprint 2) |
 | VS Code Marketplace | Extension for GitHub Copilot users, plus a receipt view for Claude Code in VS Code | Planned for v1 |
 | Open VSX | The same extension for Cursor and Windsurf | Planned for v1 |
-| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`) | Alpha (Sprint 1) |
-| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`validate` now; `label`, `fit`, `check`, `report` in Sprint 3) | Alpha (Sprint 1) |
+| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`) | Alpha |
+| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`validate` now; `label`, `fit`, `check`, `report` in Sprint 3) | Alpha |
 | Codex | Hooks support through the `twosystems` command | Alpha, untested with a live session |
 
 ## Honest limits
@@ -62,13 +72,13 @@ From Sprint 3, thresholds will be calibrated on labelled examples, so that "conf
 
 ## Privacy
 
-Everything is logged locally, in `~/.twosystems/`. The event log holds no prompts or code, only decisions, sizes, costs and a hash of what was judged. Short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) stay in `~/.twosystems/sessions/` and are removed once unused for seven days (checked once a day while hooks run). The only data that leaves your machine is a short summary of the moment being judged (about 600 tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With the rules engine or a local model, nothing leaves your machine.
+Everything is logged locally, in `~/.twosystems/` (the Claude Code plugin writes one file per session in `~/.twosystems/events.d/`). The event log holds no prompts or code, only decisions, sizes, costs and a hash of what was judged. The hook command's short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) stay in `~/.twosystems/sessions/` and are removed once unused for seven days (checked once a day while hooks run). The only data that leaves your machine is a short summary of the moment being judged (about 600 tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With the rules engine or a local model, nothing leaves your machine.
 
 ## Repository layout
 
 ```
 packages/core/         TypeScript core: signals, decision engines, receipt maths, the twosystems command (npm)
-packages/claude-code/  Claude Code plugin
+packages/claude-code/  Claude Code plugin (a mod; installs from .claude-plugin/marketplace.json)
 packages/vscode/       VS Code extension (VS Code Marketplace and Open VSX)
 python/                Python package: labelling, calibration, drift checks, reports (PyPI, twosystems-calibrate)
 schemas/               Shared file formats: the event log and decisions.lock

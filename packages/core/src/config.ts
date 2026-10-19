@@ -11,6 +11,8 @@ export interface Config {
   /** Folder for the event log, session notes and decisions.lock. */
   home: string;
   eventsPath: string;
+  /** Folder of per-session event files written by the Claude Code plugin. */
+  eventsDir: string;
   lockPath: string;
   sessionsDir: string;
   engine: Exclude<EngineKind, "llm">;
@@ -55,6 +57,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const config: Config = {
     home,
     eventsPath: join(home, "events.jsonl"),
+    eventsDir: join(home, "events.d"),
     lockPath: env["TWOSYSTEMS_LOCK"]?.trim() || join(home, "decisions.lock"),
     sessionsDir: join(home, "sessions"),
     engine,

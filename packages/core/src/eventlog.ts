@@ -1,29 +1,15 @@
-// The local event log: one JSON record per line in ~/.twosystems/events.jsonl.
+// The local event log: one JSON record per line in ~/.twosystems/events.jsonl,
+// plus one file per session in ~/.twosystems/events.d/ from adapters that
+// cannot append to a shared file (the Claude Code plugin). See decision 0006.
 // Every record is checked against events.schema.json before it is written.
 // Part of twosystems, created by Shashikant.
-import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { appendFile, mkdir, readdir } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import type { TwoSystemsEvent } from "./contracts.js";
 import { MAX_EVENT_BYTES, validateEvent, validateEventText } from "./contracts.js";
 
-const TOKEN = /^[A-Za-z0-9._:/@+-]{1,128}$/;
-
-/** True when a value can be stored in a token field (session, model, version). */
-export function isToken(value: string): boolean {
-  return TOKEN.test(value);
-}
-
-/** A fresh event id. */
-export function newId(): string {
-  return randomUUID();
-}
-
-/** An RFC 3339 timestamp in UTC with milliseconds. */
-export function timestamp(ms: number = Date.now()): string {
-  return new Date(ms).toISOString();
-}
+export { isToken, newId, timestamp } from "./ids.js";
 
 /** Append one event. Throws if the event does not match the schema, so a bad adapter fails loudly in tests. */
 export async function appendEvent(path: string, event: TwoSystemsEvent): Promise<void> {
@@ -88,6 +74,36 @@ export async function readEvents(path: string): Promise<ReadResult> {
     problems.push(`line ${number}: longer than ${MAX_EVENT_BYTES} bytes`);
   } else {
     take(rest);
+  }
+  return { events, problems };
+}
+
+/**
+ * Read the whole event log: events.jsonl, then every .jsonl file in the
+ * events.d folder in name order. Each problem names its file. An event that
+ * appears twice (same id) is kept once.
+ */
+export async function readEventLog(paths: { eventsPath: string; eventsDir: string }): Promise<ReadResult> {
+  const files = [paths.eventsPath];
+  try {
+    const names = (await readdir(paths.eventsDir)).filter((name) => name.endsWith(".jsonl")).sort();
+    files.push(...names.map((name) => join(paths.eventsDir, name)));
+  } catch (error) {
+    // No folder, or something that is not a folder: there are no per-session files to read.
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+  }
+  const events: TwoSystemsEvent[] = [];
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const file of files) {
+    const result = await readEvents(file);
+    for (const event of result.events) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+      events.push(event);
+    }
+    problems.push(...result.problems.map((problem) => `${basename(file)} ${problem}`));
   }
   return { events, problems };
 }

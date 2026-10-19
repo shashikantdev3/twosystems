@@ -7,11 +7,15 @@ import type { Agent, DecisionName, Engine as EngineInfo } from "./contracts.js";
 import { type Config, cacheTtlFor, readConfig } from "./config.js";
 import { createEngine } from "./engines/index.js";
 import { EngineError } from "./engines/types.js";
-import { readEvents } from "./eventlog.js";
+import { readEventLog } from "./eventlog.js";
 import { handleHook, recordEvents } from "./hookrunner.js";
-import { type LoadedLock, builtInLock, readLock } from "./lock.js";
+import { type LoadedLock, builtInLock } from "./lock.js";
+import { readLock } from "./lockfile.js";
 import { QUESTIONS } from "./questions.js";
-import { type Receipt, buildReceipt } from "./receipt.js";
+import { buildReceipt } from "./receipt.js";
+import { formatReceipt, money } from "./receipttext.js";
+
+export { formatReceipt };
 import type { SignalName } from "./signals.js";
 import { VERSION } from "./version.js";
 
@@ -105,37 +109,6 @@ async function runHook(args: string[]): Promise<number> {
   return 0;
 }
 
-function money(usd: number): string {
-  return usd < 0.01 ? `$${usd.toFixed(5)}` : `$${usd.toFixed(2)}`;
-}
-
-/** The receipt as plain text. */
-export function formatReceipt(r: Receipt, days: number | undefined): string {
-  const lines: string[] = [];
-  lines.push(`twosystems receipt${days === undefined ? "" : ` (last ${days} days)`}`);
-  lines.push(`Sessions watched:        ${r.sessions}`);
-  lines.push(
-    `Checks run:              ${r.decisions.total} (act ${r.decisions.byBand.act}, unsure ${r.decisions.byBand.unsure}, silent ${r.decisions.byBand.silent}, not evaluated ${r.decisions.byBand.not_evaluated})`,
-  );
-  lines.push(`Suggestions shown:       ${r.decisions.shown} (held back on purpose: ${r.decisions.heldOut})`);
-  lines.push(`Taken / declined:        ${r.actions.accepted} / ${r.actions.declined}`);
-  lines.push(`Our own cost:            ${money(r.ownCostUsd)}`);
-  lines.push(`Estimated tokens saved:  ${r.estimatedTokensSaved.toLocaleString("en-US")} (an estimate, not a measurement)`);
-  const v = r.verified;
-  if (v.status === "not_enough_data") {
-    lines.push(`Verified saving:         not enough data yet (${v.shown} shown and ${v.heldOut} held back; ${v.needed} of each needed)`);
-  } else {
-    const fmt = (x: number) => (v.unit === "usd" ? money(x) : `${Math.round(x).toLocaleString("en-US")} tokens`);
-    const range = `${fmt(v.perMoment.low)} to ${fmt(v.perMoment.high)}`;
-    lines.push(
-      v.status === "verified"
-        ? `Verified saving:         ${fmt(v.perMoment.mean)} per suggestion (95% interval ${range})`
-        : `Verified saving:         no clear effect yet (95% interval ${range} per suggestion)`,
-    );
-  }
-  return lines.join("\n");
-}
-
 async function runReceipt(args: string[]): Promise<number> {
   const { values } = parseArgs({ args, options: { days: { type: "string" }, json: { type: "boolean" } } });
   const config = readConfig();
@@ -144,12 +117,12 @@ async function runReceipt(args: string[]): Promise<number> {
     process.stderr.write("--days must be a positive number\n");
     return 2;
   }
-  const { events, problems } = await readEvents(config.eventsPath);
+  const { events, problems } = await readEventLog(config);
   const since = days === undefined ? -Infinity : Date.now() - days * 86_400_000;
   const receipt = buildReceipt(events.filter((e) => Date.parse(e.ts) >= since));
   if (values.json) process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
   else process.stdout.write(`${formatReceipt(receipt, days)}\n`);
-  if (problems.length > 0) process.stderr.write(`Skipped ${problems.length} unreadable line(s) in ${config.eventsPath}.\n`);
+  if (problems.length > 0) process.stderr.write(`Skipped ${problems.length} unreadable line(s) in the event log under ${config.home}.\n`);
   return 0;
 }
 
@@ -173,7 +146,7 @@ async function runDoctor(args: string[]): Promise<number> {
     say(false, `data folder ${config.home} is not writable`);
   }
 
-  const { events, problems } = await readEvents(config.eventsPath);
+  const { events, problems } = await readEventLog(config);
   say(problems.length === 0, `event log: ${events.length} events${problems.length > 0 ? `, ${problems.length} unreadable lines` : ""}`);
 
   const engine = createEngine(config);

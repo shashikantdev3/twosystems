@@ -2,7 +2,7 @@
 
 twosystems is built in short sprints, each about one week at an evenings-and-weekends pace. Every sprint ends with a review against its exit checks before anything is merged or published. Sprint lengths are targets, not promises.
 
-**Current sprint:** 1 (core engine, the `twosystems` command and the first alpha releases). Sprint 0 is done.
+**Current sprint:** 2 (the Claude Code plugin). Sprints 0 and 1 are done; the first alphas are on npm (0.1.0-alpha.1) and PyPI (0.1.0a1).
 
 The two long poles are labelling real sessions for calibration and collecting enough real usage for the verified receipt. Both start early and run in the background from Sprint 2 onwards.
 
@@ -41,6 +41,8 @@ The two long poles are labelling real sessions for calibration and collecting en
 
 **Exit checks:** `claude plugin validate --strict` and `claude plugin test` pass; installs from GitHub on a clean Windows machine; three days of daily use without errors.
 
+**As built (19 October 2026):** a mod (decision 0006) with the portable core copied in. The stuck check asks through Claude Code's own permission dialog, whose No covers both stop and add a hint, and only in the permission modes that show it. The band draws in the terminal and the Desktop app; VS Code gets a pane. The receipt line appears only under the next answer after twosystems did something. Until calibration, the false-alarm level is a plain shift of the built-in thresholds. Added beyond the plan: a new-task prompt in a large conversation is held until the user chooses. Validate, 58 plugin tests, a real model request and a live terminal check of the permission dialog pass, after three checker rounds (the first found four blockers, all fixed); the Windows install and three days of daily use are the author's to run.
+
 ## Sprint 3: Calibration kit (Python)
 
 **Goal:** thresholds that mean what they say.
@@ -69,6 +71,7 @@ The two long poles are labelling real sessions for calibration and collecting en
 
 - The 10% holdout running in both adapters; confidence intervals by bootstrap; the verified figure appears only when the interval clears zero; our own overhead is subtracted.
 - Privacy tests for redaction; behaviour checks for timeouts, missing keys and offline use.
+- Close the one known one-sided gap in the Claude Code plugin: a stuck decision on the shown side is written only when its question settles, so a plugin reload or a killed process while the dialog is up loses it (keep pending questions in Claude Code's session state, or write the decision at the ask).
 - Documentation site and a written method for how savings are measured.
 
 **Exit checks:** a complete receipt from the author's real usage, with intervals; all privacy tests pass.

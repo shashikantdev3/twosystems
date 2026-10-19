@@ -1,6 +1,7 @@
 # Release twosystems to PyPI and npm when a version tag is pushed, created by Shashikant.
 # Both registries use trusted publishing (OpenID Connect): no tokens are stored in GitHub.
-# Tag format: v0.1.0-alpha.1 (npm 0.1.0-alpha.1, PyPI 0.1.0a1) or v0.1.0.
+# Tag format: v0.1.0-alpha.1 (npm 0.1.0-alpha.1, PyPI 0.1.0a1, Claude Code plugin 0.1.0-alpha.1) or v0.1.0.
+# The Claude Code plugin needs no publishing step: it installs from this repository's marketplace file.
 name: release
 
 on:

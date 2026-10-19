@@ -46,7 +46,7 @@ export {
   RulesEngine,
   createEngine,
 } from "./engines/index.js";
-export { appendEvent, isToken, newId, readEvents, timestamp, type ReadResult } from "./eventlog.js";
+export { appendEvent, isToken, newId, readEventLog, readEvents, timestamp, type ReadResult } from "./eventlog.js";
 export { type HookResult, handleHook, recordEvents } from "./hookrunner.js";
 export { type HookInput, askBeforeTool, eventKind, lastTranscriptUsage, parseHookPayload, showNote } from "./hooks.js";
 export {
@@ -57,8 +57,8 @@ export {
   defaultLock,
   lockHash,
   lockMismatch,
-  readLock,
 } from "./lock.js";
+export { readLock } from "./lockfile.js";
 export { type Evaluation, type EvaluateInput, evaluate, sessionToken } from "./pipeline.js";
 export { type DecisionQuestion, LABEL_SUGGESTION, QUESTIONS, labelsOf, questionHash, sha256 } from "./questions.js";
 export { type Interval, type Receipt, RECEIPT_RULES, bootstrapSaving, buildReceipt, requestTokens } from "./receipt.js";

@@ -1,0 +1,81 @@
+{
+  "name": "twosystems",
+  "displayName": "twosystems",
+  "version": "0.1.0-alpha.2",
+  "description": "A cheap, honest watchman for Claude Code: asks before the next step when the agent seems stuck, suggests /clear or /compact when a fresh start would save tokens, and keeps a receipt of what it cost and saved. Created by Shashikant.",
+  "author": { "name": "Shashikant", "url": "https://github.com/shashikantdev3" },
+  "homepage": "https://github.com/shashikantdev3/twosystems",
+  "repository": "https://github.com/shashikantdev3/twosystems",
+  "license": "Apache-2.0",
+  "keywords": ["tokens", "cost", "stuck", "context", "decision-model", "receipt"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "engine": {
+      "type": "string",
+      "title": "Decision engine",
+      "description": "auto: OpenRouter when a key is set, otherwise rules. rules: no model, nothing leaves your machine. openrouter: Microsoft Decision-1 or TypeSafe Jev. ollama: a local decision model.",
+      "options": ["auto", "rules", "openrouter", "ollama"],
+      "default": "auto"
+    },
+    "openrouter_key": {
+      "type": "string",
+      "title": "OpenRouter API key",
+      "description": "Optional. Kept in your system's secure storage. Left empty, OPENROUTER_API_KEY from your environment is used if set.",
+      "sensitive": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Decision model",
+      "description": "Empty for the default (microsoft/microsoft-decision-1-20261009 on OpenRouter). Another OpenRouter id such as typesafe/jev-1.14, or an Ollama model such as nimble.",
+      "default": ""
+    },
+    "ollama_host": {
+      "type": "string",
+      "title": "Ollama address",
+      "description": "Where Ollama runs, for the ollama engine.",
+      "default": "http://127.0.0.1:11434"
+    },
+    "false_alarm_budget": {
+      "type": "string",
+      "title": "False-alarm level",
+      "description": "How readily twosystems interrupts. low is the most cautious. Until calibration ships, this moves the built-in thresholds; it is not yet a measured rate.",
+      "options": ["low", "medium", "high"],
+      "default": "low"
+    },
+    "holdout": {
+      "type": "number",
+      "title": "Holdout share",
+      "description": "Share of suggestions held back on purpose so the receipt can measure what the shown ones saved. 0 to 0.5.",
+      "min": 0,
+      "max": 0.5,
+      "default": 0.1
+    },
+    "cache_minutes": {
+      "type": "string",
+      "title": "Prompt cache lifetime (minutes)",
+      "description": "60 on a Claude plan. 5 with an API key or a cloud provider.",
+      "options": ["60", "5"],
+      "default": "60"
+    },
+    "hold_new_task_prompts": {
+      "type": "boolean",
+      "title": "Ask before a new task in a large conversation",
+      "description": "When a prompt looks like a different task and the conversation is large, hold it and offer Clear, Compact or Send as is.",
+      "default": true
+    },
+    "receipt_line": {
+      "type": "boolean",
+      "title": "Receipt line under answers",
+      "description": "Show a short line under an answer when twosystems did something during that turn.",
+      "default": true
+    },
+    "timeout_ms": {
+      "type": "number",
+      "title": "Decision model timeout (ms)",
+      "description": "Longest wait for the decision model before twosystems stays silent. 500 to 8000.",
+      "min": 500,
+      "max": 8000,
+      "default": 5000
+    }
+  }
+}

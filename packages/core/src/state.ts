@@ -2,7 +2,7 @@
 // This summary is the only part of a session that leaves the machine, and only
 // when a remote engine is used. The event log keeps just its hash.
 // Part of twosystems, created by Shashikant.
-import type { DecisionName } from "./contracts.js";
+import type { DecisionName } from "./model.js";
 import { sha256 } from "./questions.js";
 import { redact, redactAndClip } from "./redact.js";
 import type { Observation, SignalName } from "./signals.js";

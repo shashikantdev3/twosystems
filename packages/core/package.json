@@ -1,6 +1,6 @@
 {
   "name": "twosystems",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "A cheap, honest watchman for AI coding agents (Claude Code, GitHub Copilot, Codex): notices when the agent is stuck or a fresh start would save tokens, using a small decision model, and measures what it saved. Created by Shashikant.",
   "keywords": [
     "claude-code",

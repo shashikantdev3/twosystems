@@ -2,8 +2,10 @@
 // Thresholds in decisions.lock are fitted on one exact wording, recorded as a
 // hash; changing a word here means fitting again.
 // Part of twosystems, created by Shashikant.
-import { createHash } from "node:crypto";
-import type { DecisionName, Suggestion } from "./contracts.js";
+import { sha256 } from "./hash.js";
+import type { DecisionName, Suggestion } from "./model.js";
+
+export { sha256 };
 
 export interface DecisionQuestion {
   name: DecisionName;
@@ -48,11 +50,6 @@ export const LABEL_SUGGESTION: Readonly<Record<string, Suggestion>> = {
 /** Labels of a question, in order. */
 export function labelsOf(question: DecisionQuestion): string[] {
   return Object.keys(question.criteria);
-}
-
-/** "sha256:" plus the hex digest of the UTF-8 text. */
-export function sha256(text: string): string {
-  return `sha256:${createHash("sha256").update(text, "utf8").digest("hex")}`;
 }
 
 /** Hash of the exact wording, as stored in decisions.lock under question_hash. */

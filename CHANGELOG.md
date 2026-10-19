@@ -6,6 +6,29 @@ All notable changes to twosystems are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] - 2026-10-19
+
+npm `twosystems` 0.1.0-alpha.2, PyPI `twosystems` 0.1.0a2, and the first Claude Code plugin.
+
+### Added (Sprint 2: Claude Code plugin)
+
+- The twosystems plugin for Claude Code, a mod that runs inside Claude Code with no Node.js (needs Claude Code 2.1.303 or newer). Install: `/plugin install twosystems --marketplace shashikantdev3/twosystems`.
+- Stuck check through Claude Code's own permission dialog, only in the permission modes that show it: Yes lets the step run, No stops so the user can tell Claude what to try instead. An answer is recorded only once Claude Code reports that its dialog appeared and no other hook answered it (checked in a live terminal session).
+- Fresh-start band above the prompt with Clear, Compact and Keep going (terminal and Desktop app; a pane in VS Code), after a turn in a large conversation and after an idle spell longer than the prompt cache lifetime.
+- A prompt typed in the terminal that looks like a new task in a large conversation is held until the user chooses Clear then send, Compact then send, Send as is, or Edit (can be switched off). It is sent as the user's own words. It is never dropped: it goes back into the prompt box after any draft, or keeps waiting in the band when the box is busy.
+- Exact usage for every main-loop request and every compaction, a receipt line under the next answer after twosystems did something, a status line entry, and `/twosystems` with the settings and the receipt.
+- Settings in `/config`: engine, OpenRouter key (in secure storage), model, Ollama address, false-alarm level, holdout, cache lifetime, prompt holding, receipt line and timeout.
+- A marketplace file at the repository root, and a CI job that runs `claude plugin validate --strict` and `claude plugin test` on Linux and Windows.
+- Decision record 0006: the plugin is a mod, with one event file per session.
+
+### Changed
+
+- The event log is now `~/.twosystems/events.jsonl` plus one file per session in `~/.twosystems/events.d/`. `twosystems receipt` and `doctor` read both and count each event once.
+- The core's shared logic no longer touches Node: contract types, a plain-TypeScript SHA-256 (checked against node:crypto), ids, observations, record builders, the receipt text and messages moved into modules reachable from `portable.ts`. Engines take any fetch and the pipeline any timer. A test fails if anything reachable from `portable.ts` imports a Node module.
+- `scripts/check-release.mjs` also checks the plugin's version.
+- A suggestion recorded with reason `not_shown` (its moment passed before it could appear) is not counted as shown, but stays in the verified comparison as the random draw assigned it, so missed moments dilute the measured effect toward zero rather than tilt the comparison. The receipt shows how many there were (`Receipt.decisions.notShown`).
+- `twosystems receipt` and `doctor` no longer stop when `events.d` is a file rather than a folder.
+
 ## [0.1.0-alpha.1] - 2026-10-19
 
 First alpha: npm `twosystems` 0.1.0-alpha.1 and PyPI `twosystems` 0.1.0a1.

@@ -42,6 +42,24 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  claude-code-plugin:
+    name: Claude Code plugin (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # Pinned, because the mods API the plugin uses is checked against this exact build.
+      - run: npm install --global @anthropic-ai/claude-code@2.1.303
+      - run: claude plugin validate --strict .
+      - run: claude plugin validate --strict packages/claude-code
+      - run: claude plugin test packages/claude-code
+
   python:
     name: Python (${{ matrix.os }}, Python ${{ matrix.python }})
     strategy:

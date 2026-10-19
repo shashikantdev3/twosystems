@@ -45,3 +45,6 @@ CLAUDE.local.md
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Types Claude Code writes beside a plugin while developing it
+packages/claude-code/.claude-plugin/types/

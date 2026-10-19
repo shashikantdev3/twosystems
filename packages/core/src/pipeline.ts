@@ -2,11 +2,10 @@
 // and the event record. Failures never block the user: they become a silent
 // "not_evaluated" record.
 // Part of twosystems, created by Shashikant.
-import { randomBytes } from "node:crypto";
-import type { Agent, Decision, DecisionName, Suggestion, TwoSystemsEvent } from "./contracts.js";
+import type { Agent, Decision, DecisionName, Suggestion, TwoSystemsEvent } from "./model.js";
 import type { DecisionEngine } from "./engines/types.js";
 import { EngineError } from "./engines/types.js";
-import { isToken, newId, timestamp } from "./eventlog.js";
+import { isToken, newId, secureRandom, timestamp } from "./ids.js";
 import { type LoadedLock, applyThresholds, defaultLock, lockMismatch } from "./lock.js";
 import { QUESTIONS, sha256 } from "./questions.js";
 import { type Observation, type SignalName, freshStartSignals, stuckSignals } from "./signals.js";
@@ -30,6 +29,12 @@ export interface EvaluateInput {
   adapterVersion?: string;
   /** Random number in [0, 1). Defaults to a cryptographic source; tests pass a fixed one. */
   random?: () => number;
+  /**
+   * Starts the timeout: calls onTimeout after ms and returns a function that
+   * cancels it. Defaults to the platform's setTimeout; the Claude Code plugin
+   * passes its host clock.
+   */
+  startTimer?: (ms: number, onTimeout: () => void) => () => void;
 }
 
 export interface Evaluation {
@@ -40,9 +45,17 @@ export interface Evaluation {
   show?: Suggestion;
 }
 
-/** A uniform random number in [0, 1) from 48 cryptographically random bits. */
-function secureRandom(): number {
-  return randomBytes(6).readUIntBE(0, 6) / 2 ** 48;
+interface PlatformTimers {
+  setTimeout?: (fn: () => void, ms: number) => unknown;
+  clearTimeout?: (handle: unknown) => void;
+}
+
+/** The platform's own timer, where there is one. Without it, no timeout is set. */
+function platformTimer(ms: number, onTimeout: () => void): () => void {
+  const timers = globalThis as PlatformTimers;
+  if (timers.setTimeout === undefined) return () => undefined;
+  const handle = timers.setTimeout(onTimeout, ms);
+  return () => timers.clearTimeout?.(handle);
 }
 
 /** A session id that fits the event schema: kept when it is a plain token, hashed otherwise. */
@@ -111,7 +124,7 @@ export async function evaluate(input: EvaluateInput): Promise<Evaluation> {
 
   const started = performance.now();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), input.timeoutMs);
+  const cancelTimer = (input.startTimer ?? platformTimer)(input.timeoutMs, () => controller.abort());
   try {
     const answer = await withTimeout(
       input.engine.decide({ question, state: state.lines, signals, signal: controller.signal }),
@@ -143,7 +156,7 @@ export async function evaluate(input: EvaluateInput): Promise<Evaluation> {
     decision.latency_ms = round(performance.now() - started, 1);
     decision.reason = error instanceof EngineError ? error.reason : controller.signal.aborted ? "timeout" : "engine_error";
   } finally {
-    clearTimeout(timer);
+    cancelTimer();
   }
 
   // The holdout applies to every moment that would have shown something.

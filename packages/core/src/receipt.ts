@@ -3,7 +3,7 @@
 // one), and a verified figure from the random holdout that is shown only when
 // its confidence interval clears zero.
 // Part of twosystems, created by Shashikant.
-import type { Band, TwoSystemsEvent, Usage } from "./contracts.js";
+import type { Band, TwoSystemsEvent, Usage } from "./model.js";
 
 type DecisionEvent = TwoSystemsEvent & { type: "decision" };
 type UsageEvent = TwoSystemsEvent & { type: "usage" };
@@ -33,6 +33,8 @@ export interface Receipt {
     byBand: Record<Band, number>;
     /** Suggestions the user saw. */
     shown: number;
+    /** Suggestions due to be shown whose moment passed before they could appear. */
+    notShown: number;
     /** Moments where a suggestion was due but held back on purpose. */
     heldOut: number;
   };
@@ -159,9 +161,15 @@ export function buildReceipt(events: readonly TwoSystemsEvent[]): Receipt {
     ownCostUsd += d.decision.cost_usd ?? 0;
     decisionById.set(d.id, d);
   }
+  // Every moment the coin was flipped for stays in the comparison, as it was
+  // assigned: dropping moments from one group after the flip would bias it. A
+  // suggestion whose moment passed before it could appear (reason "not_shown")
+  // is therefore still in the shown group; it only waters the effect down, and
+  // it is not counted as a suggestion the user saw.
   const due = decisions.filter((d) => d.decision.band === "act" && d.decision.suggestion !== undefined);
-  const shown = due.filter((d) => !d.decision.holdout);
+  const assigned = due.filter((d) => !d.decision.holdout);
   const heldOut = due.filter((d) => d.decision.holdout);
+  const notShown = assigned.filter((d) => d.decision.reason === "not_shown").length;
 
   // Estimate: when the user cleared or compacted after a suggestion, the context
   // that shrank is not sent again with each later request in the next hour.
@@ -204,16 +212,16 @@ export function buildReceipt(events: readonly TwoSystemsEvent[]): Receipt {
   const sessions = new Set(sorted.map((e) => `${e.agent}\n${e.session}`)).size;
   const base = {
     sessions,
-    decisions: { total: decisions.length, byBand, shown: shown.length, heldOut: heldOut.length },
+    decisions: { total: decisions.length, byBand, shown: assigned.length - notShown, notShown, heldOut: heldOut.length },
     actions: { accepted, declined },
     ownCostUsd,
     estimatedTokensSaved,
   };
 
-  // Verified: compare what the agent used in the hour after a shown suggestion with
-  // the hour after a held-back one, for agents that report measured usage.
+  // Verified: compare what the agent used in the hour after a suggestion chosen to be
+  // shown with the hour after a held-back one, for agents that report measured usage.
   const measured = (d: DecisionEvent) => exactByAgent.has(d.agent);
-  const shownMeasured = shown.filter(measured);
+  const shownMeasured = assigned.filter(measured);
   const heldMeasured = heldOut.filter(measured);
   if (shownMeasured.length < RECEIPT_RULES.minPerGroup || heldMeasured.length < RECEIPT_RULES.minPerGroup) {
     return {

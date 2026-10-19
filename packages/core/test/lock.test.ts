@@ -5,7 +5,8 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateLock } from "../src/contracts.js";
-import { applyThresholds, builtInLock, defaultLock, lockMismatch, readLock } from "../src/lock.js";
+import { applyThresholds, builtInLock, defaultLock, lockMismatch } from "../src/lock.js";
+import { readLock } from "../src/lockfile.js";
 import { QUESTIONS, questionHash } from "../src/questions.js";
 
 test("the built-in locks are valid decisions.lock files", () => {

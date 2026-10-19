@@ -5,6 +5,9 @@
 //   from the --event flag in the hook configuration.
 // Part of twosystems, created by Shashikant.
 import { open, stat } from "node:fs/promises";
+import { isEditTool, toolCommand, toolFiles } from "./observations.js";
+
+export { isEditTool };
 
 export type HookEvent =
   | "session_start"
@@ -89,32 +92,6 @@ function obj(value: unknown): Json | undefined {
   return undefined;
 }
 
-const EDIT_WORD = /edit|write|patch|create|replace|insert|delete|rename|move/i;
-const NOT_EDIT = /todo|read|search|list|get|fetch|view/i;
-
-/** True for tools that change files: Edit, Write, editFiles, apply_patch and the like. MCP tools are not counted. */
-export function isEditTool(name: string): boolean {
-  if (/^mcp/i.test(name)) return false;
-  return EDIT_WORD.test(name) && !NOT_EDIT.test(name);
-}
-const PATH_KEYS = ["file_path", "filePath", "path", "notebook_path", "target_file", "filename"];
-
-function filesFrom(toolName: string | undefined, input: Json | undefined): string[] | undefined {
-  if (toolName === undefined || !isEditTool(toolName)) return undefined;
-  const found: string[] = [];
-  for (const key of PATH_KEYS) {
-    const value = input?.[key];
-    if (typeof value === "string") found.push(value);
-  }
-  const many = input?.["files"] ?? input?.["paths"];
-  if (Array.isArray(many)) for (const f of many) if (typeof f === "string") found.push(f);
-  return found.length > 0 ? found : ["(unnamed file)"];
-}
-
-function commandFrom(input: Json | undefined): string | undefined {
-  return str(input?.["command"]) ?? str(input?.["cmd"]) ?? str(input?.["commandLine"]) ?? str(input?.["script"]);
-}
-
 // Work out whether a finished tool call failed, from the shapes agents use.
 function outcome(response: unknown): { ok: boolean; error?: string } {
   const r = obj(response);
@@ -167,11 +144,11 @@ export function parseHookPayload(payload: unknown, eventFlag: string | undefined
   const toolUseId = str(p["tool_use_id"]) ?? str(p["toolUseId"]);
   if (toolUseId !== undefined) input.toolUseId = toolUseId;
   const toolInput = obj(p["tool_input"]) ?? obj(p["toolArgs"]) ?? obj(p["tool_args"]);
-  const command = commandFrom(toolInput);
+  const command = toolCommand(toolInput);
   if (command !== undefined) input.command = command;
 
   if (event === "post_tool" || event === "post_tool_failure") {
-    const files = filesFrom(toolName, toolInput);
+    const files = toolFiles(toolName, toolInput);
     const result =
       event === "post_tool_failure"
         ? { ok: false, ...(str(p["error"]) ? { error: str(p["error"]) as string } : {}) }

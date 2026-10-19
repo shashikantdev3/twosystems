@@ -4,7 +4,9 @@
 
 Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**. Apache License 2.0.
 
-> **Alpha (0.1.0-alpha.1).** The engine, the `twosystems` command and the hook adapters are built and tested against recorded hook payloads. They have not yet been used for long in real sessions, and the thresholds are cautious defaults, not fitted on data. Expect changes. Feedback and issues are welcome: https://github.com/shashikantdev3/twosystems/issues
+> **Alpha (0.1.0-alpha.2).** The engine, the `twosystems` command and the hook adapters are built and tested against recorded hook payloads. They have not yet been used for long in real sessions, and the thresholds are cautious defaults, not fitted on data. Expect changes. Feedback and issues are welcome: https://github.com/shashikantdev3/twosystems/issues
+>
+> **Using Claude Code?** The [twosystems plugin](https://github.com/shashikantdev3/twosystems/tree/main/packages/claude-code) is the better choice there: it runs inside Claude Code, needs no Node.js, and reads exact token counts.
 
 ## What it does
 
@@ -47,7 +49,7 @@ Other settings: `TWOSYSTEMS_HOLDOUT` (default 0.1), `TWOSYSTEMS_TIMEOUT_MS` (def
 
 ## Privacy
 
-- The event log (`~/.twosystems/events.jsonl`) holds no prompts, code or file contents: only decisions, sizes, costs and a hash of what was judged.
+- The event log (`~/.twosystems/events.jsonl`, plus one file per session in `~/.twosystems/events.d/` from the Claude Code plugin) holds no prompts, code or file contents: only decisions, sizes, costs and a hash of what was judged. `twosystems receipt` reads both.
 - Short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) are kept in `~/.twosystems/sessions/` so the checks can see the last few steps. They never leave your machine and are removed once unused for seven days (checked once a day while hooks run).
 - With a remote engine, only the redacted summary of the moment is sent, to the provider you chose.
 

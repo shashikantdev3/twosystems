@@ -3,9 +3,9 @@ import type { Config } from "../config.js";
 import { OllamaEngine } from "./ollama.js";
 import { OpenRouterEngine } from "./openrouter.js";
 import { RulesEngine } from "./rules.js";
-import type { DecisionEngine } from "./types.js";
+import type { DecisionEngine, FetchLike } from "./types.js";
 
-export function createEngine(config: Config, fetchImpl?: typeof fetch): DecisionEngine {
+export function createEngine(config: Config, fetchImpl?: FetchLike): DecisionEngine {
   if (config.engine === "openrouter") {
     return new OpenRouterEngine({
       apiKey: config.openRouterKey,
@@ -22,4 +22,4 @@ export function createEngine(config: Config, fetchImpl?: typeof fetch): Decision
 export { OllamaEngine } from "./ollama.js";
 export { OpenRouterEngine, DEFAULT_OPENROUTER_MODEL } from "./openrouter.js";
 export { RulesEngine } from "./rules.js";
-export { EngineError, type DecisionEngine, type EngineAnswer, type EngineFailure } from "./types.js";
+export { EngineError, type DecisionEngine, type EngineAnswer, type EngineFailure, type FetchLike } from "./types.js";

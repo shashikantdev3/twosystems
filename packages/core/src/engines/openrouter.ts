@@ -2,10 +2,10 @@
 // Request and response shapes were checked against live calls on 15 Oct 2026
 // in the author's decision-models-lab project.
 // Part of twosystems, created by Shashikant.
-import type { Engine as EngineInfo } from "../contracts.js";
+import type { Engine as EngineInfo } from "../model.js";
 import type { DecisionQuestion } from "../questions.js";
 import { labelsOf } from "../questions.js";
-import { type DecisionEngine, type EngineAnswer, EngineError, normalize } from "./types.js";
+import { type DecisionEngine, type EngineAnswer, EngineError, type FetchLike, type FetchResponseLike, platformFetch, normalize } from "./types.js";
 
 export const OPENROUTER_URL = "https://openrouter.ai/api/alpha/decisions";
 /** Default model: the cheaper of the two at the time of writing, and the one with the shorter context. */
@@ -15,7 +15,7 @@ export interface OpenRouterOptions {
   apiKey: string | undefined;
   model?: string;
   url?: string;
-  fetch?: typeof fetch;
+  fetch?: FetchLike;
 }
 
 /** The JSON body sent to the decisions endpoint. */
@@ -76,8 +76,9 @@ export class OpenRouterEngine implements DecisionEngine {
   }): Promise<EngineAnswer> {
     const key = this.options.apiKey;
     if (!key) throw new EngineError("no_key", "No OpenRouter key. Set OPENROUTER_API_KEY.");
-    const doFetch = this.options.fetch ?? fetch;
-    let response: Response;
+    const doFetch = this.options.fetch ?? platformFetch();
+    if (doFetch === undefined) throw new EngineError("network", "No way to make web requests here.");
+    let response: FetchResponseLike;
     try {
       response = await doFetch(this.options.url ?? OPENROUTER_URL, {
         method: "POST",

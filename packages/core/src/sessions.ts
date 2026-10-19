@@ -8,8 +8,10 @@
 import { mkdir, readFile, readdir, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sha256 } from "./questions.js";
-import { redact } from "./redact.js";
+import { shorten, storable } from "./observations.js";
 import type { Observation } from "./signals.js";
+
+export { shorten, storable };
 
 export const SESSION_LIMITS = {
   observations: 80,
@@ -66,26 +68,6 @@ export interface SessionNotes {
   sizeReported?: boolean;
   /** The last usage record written, so the same request is not logged twice. */
   lastUsageKey?: string;
-}
-
-/** Redact and shorten text for storage. Line breaks are kept, so error lines stay apart. */
-export function shorten(text: string): string {
-  const clean = redact(text.slice(0, SESSION_LIMITS.textChars * 4));
-  return clean.length <= SESSION_LIMITS.textChars ? clean : `${clean.slice(0, SESSION_LIMITS.textChars - 3)}...`;
-}
-
-/** Copy an observation with its text redacted and shortened, ready to be stored. */
-export function storable(observation: Observation): Observation {
-  if (observation.kind === "prompt") return { ...observation, text: shorten(observation.text) };
-  if (observation.kind === "tool") {
-    const copy = { ...observation };
-    copy.tool = shorten(observation.tool).slice(0, 80);
-    if (observation.command !== undefined) copy.command = shorten(observation.command);
-    if (observation.error !== undefined) copy.error = shorten(observation.error);
-    if (observation.files !== undefined) copy.files = observation.files.slice(0, 20).map(shorten);
-    return copy;
-  }
-  return { ...observation };
 }
 
 function key(...parts: string[]): string {

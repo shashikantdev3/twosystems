@@ -161,3 +161,19 @@ test("each suggestion counts once, and a clear is followed only into sessions it
   // request after it in the sessions that count (the new one), times two requests.
   assert.equal(r.estimatedTokensSaved, (160_000 - 15_000) * 2);
 });
+
+test("a suggestion whose moment passed is not counted as seen, but stays in the comparison as assigned", () => {
+  const passed = decision("p", 0, false);
+  passed.decision.reason = "not_shown";
+  const held = decision("q", 0, true);
+  const shown = decision("r", 0, false);
+  for (const d of [passed, held, shown]) assert.deepEqual(validateEvent(d), { ok: true, errors: [] });
+  const r = buildReceipt([passed, held, shown, usage("p", 1, 10_000)]);
+  assert.equal(r.decisions.total, 3);
+  assert.equal(r.decisions.byBand.act, 3);
+  assert.equal(r.decisions.shown, 1);
+  assert.equal(r.decisions.notShown, 1);
+  assert.equal(r.decisions.heldOut, 1);
+  // Both moments chosen to be shown are in the comparison, so missing one cannot bias it.
+  assert.deepEqual(r.verified, { status: "not_enough_data", shown: 2, heldOut: 1, needed: RECEIPT_RULES.minPerGroup });
+});
