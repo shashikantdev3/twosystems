@@ -53,6 +53,18 @@ function dirOf(path: string): string {
   return path.slice(0, path.lastIndexOf("/"));
 }
 
+/**
+ * The key a path is kept under in the world's files. The test home is a
+ * Linux-style path; on Windows Claude Code may not pass such a path to the
+ * file hooks as given (backslashes, a drive or the working directory in
+ * front), so every path is brought back to the same form before it is used.
+ */
+export function fileKey(path: string): string {
+  const slashed = path.replace(/\\/g, "/");
+  const at = slashed.indexOf(HOME);
+  return at >= 0 ? slashed.slice(at) : slashed;
+}
+
 export function world(
   on: On,
   options: { session?: string; window?: number; settings?: Record<string, unknown>; env?: Record<string, string> } = {},
@@ -93,20 +105,23 @@ export function world(
   on("session.version", () => ({ value: { version: "2.1.303", base: "2.1.303", builtAt: "2026-10-01T00:00:00Z" } }));
   on("session.usage", () => ({ value: { startedAt: START, context: { window: options.window ?? 200_000 }, rateLimits: [] } }));
   on("settings.read", () => ({ value: options.settings ?? {} }));
-  on("fs.exists", ($, e) => ({ value: files.has(e.path) }));
+  on("fs.exists", ($, e) => ({ value: files.has(fileKey(e.path)) }));
   on("fs.read", ($, e) => {
-    const text = files.get(e.path);
+    const text = files.get(fileKey(e.path));
     return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: text };
   });
   on("fs.write", ($, e) => {
-    files.set(e.path, e.text);
+    files.set(fileKey(e.path), e.text);
     return { value: undefined };
   });
-  on("fs.list", ($, e) => ({
-    value: [...files.keys()]
-      .filter((path) => dirOf(path) === e.path)
-      .map((path) => ({ name: path.slice(e.path.length + 1), kind: "file" as const, size: (files.get(path) ?? "").length, mtimeMs: 0, isLink: false })),
-  }));
+  on("fs.list", ($, e) => {
+    const dir = fileKey(e.path);
+    return {
+      value: [...files.keys()]
+        .filter((path) => dirOf(path) === dir)
+        .map((path) => ({ name: path.slice(dir.length + 1), kind: "file" as const, size: (files.get(path) ?? "").length, mtimeMs: 0, isLink: false })),
+    };
+  });
   on("command.register", ($, e) => ({ value: { command: e.name } }));
   on("ui.status", ($, e) => {
     if (e.text !== undefined) w.statuses.push(e.text);

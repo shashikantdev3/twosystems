@@ -6,6 +6,7 @@ import { EventLog, type LogFiles, homeFolder } from "../hooks/plugin/eventlog.js
 import { readSettings, thresholdsFor } from "../hooks/plugin/settings.js";
 import { excerpt, receiptLine } from "../hooks/plugin/text.js";
 import { askOutcome } from "../hooks/plugin/tracker.js";
+import { fileKey } from "./world.js";
 
 test("a refusal counts as stop only in Claude Code's own words", () => {
   expect(askOutcome({ deny: "blocked by a hook" })).toBe("stop");
@@ -152,4 +153,12 @@ test("files with a byte-order mark or no final newline are read and extended cle
   const text = io.files.get("/h/events.d/claude-code-s1.jsonl") ?? "";
   expect(text.split("\n").filter((l) => l !== "").length).toBe(2);
   expect((await log.readAll(io, "/h")).events.length).toBe(2);
+});
+
+test("the test world finds a file however Windows spells its path", () => {
+  const key = "/home/dev/.twosystems/events.d/claude-code-s.jsonl";
+  expect(fileKey(key)).toBe(key);
+  expect(fileKey("\\home\\dev\\.twosystems\\events.d\\claude-code-s.jsonl")).toBe(key);
+  expect(fileKey("D:\\home\\dev\\.twosystems\\events.d\\claude-code-s.jsonl")).toBe(key);
+  expect(fileKey("D:/a/twosystems/twosystems/home/dev/.twosystems/events.d/claude-code-s.jsonl")).toBe(key);
 });

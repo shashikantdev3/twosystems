@@ -12,6 +12,8 @@ test("every main-loop request is recorded as exact usage in the session's own fi
   await start($);
   w.usage = { input: 1_500, cacheRead: 40_000 };
   await turn($, w, "add a dark mode toggle to settings");
+  // Checked first, so a failure shows where the log landed.
+  expect([...w.files.keys()]).toEqual([`${LOG_DIR}/claude-code-7f9c2a1e-0d3b-4c55-9a77-1b2c3d4e5f60.jsonl`]);
   const usage = w.events().filter((e) => e["type"] === "usage");
   expect(usage.length).toBe(1);
   expect(usage[0]?.["usage"]).toEqual({
@@ -23,7 +25,6 @@ test("every main-loop request is recorded as exact usage in the session's own fi
     cache_write_tokens: 0,
     context_tokens: 41_500,
   });
-  expect([...w.files.keys()]).toEqual([`${LOG_DIR}/claude-code-7f9c2a1e-0d3b-4c55-9a77-1b2c3d4e5f60.jsonl`]);
 });
 
 test("a turn where twosystems asked gets a line under the answer", OPTIONS, async ($, on) => {
