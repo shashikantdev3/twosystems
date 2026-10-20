@@ -137,6 +137,39 @@ test("a fitted lock is used only when it matches the engine and the question", a
   const mismatched = await evaluate(input({ engine, lock: { lock: other, hash: lockHash(other), source: "/tmp/x.lock" } }));
   assert.equal(mismatched.event?.decision.band, "unsure");
   assert.equal(mismatched.event?.decision.reason, "lock_mismatch");
+
+  // A lock fitted only for the other decision is not a mismatch: the built-in thresholds apply quietly.
+  const onlyFresh = defaultLock(engine.info);
+  delete onlyFresh.decisions.stuck;
+  const partial = await evaluate(input({ engine, lock: { lock: onlyFresh, hash: lockHash(onlyFresh), source: "/tmp/y.lock" } }));
+  assert.equal(partial.event?.decision.band, "unsure");
+  assert.equal(partial.event?.decision.reason, undefined);
+
+  // Thresholds fitted on another model version are not used for this one.
+  const versioned = defaultLock(engine.info);
+  if (versioned.decisions.stuck) {
+    versioned.decisions.stuck.thresholds = { stuck: { act: 0.75, unsure: 0.5 } };
+    versioned.decisions.stuck.engine.model_version = "test/model-2025";
+  }
+  const stale = await evaluate(input({ engine, lock: { lock: versioned, hash: lockHash(versioned), source: "/tmp/z.lock" } }));
+  assert.equal(stale.event?.decision.band, "unsure");
+  assert.equal(stale.event?.decision.reason, "lock_mismatch");
+  if (versioned.decisions.stuck) versioned.decisions.stuck.engine.model_version = "test/model-2026";
+  const same = await evaluate(input({ engine, lock: { lock: versioned, hash: lockHash(versioned), source: "/tmp/z.lock" } }));
+  assert.equal(same.event?.decision.band, "act");
+});
+
+test("thresholds apply to the probabilities as logged, rounded to four places", async () => {
+  const engine: DecisionEngine = {
+    info: { kind: "openrouter", model: "test/model" },
+    remote: true,
+    decide: () => Promise.resolve({ probabilities: { progressing: 0.00001, stuck: 0.84999 } }),
+  };
+  const lock = defaultLock(engine.info);
+  if (lock.decisions.stuck) lock.decisions.stuck.thresholds = { stuck: { act: 0.85, unsure: 0.5 } };
+  const result = await evaluate(input({ engine, lock: { lock, hash: lockHash(lock), source: "/tmp/r.lock" } }));
+  assert.equal(result.event?.decision.probabilities?.["stuck"], 0.85);
+  assert.equal(result.event?.decision.band, "act");
 });
 
 test("session ids that are not plain tokens are hashed", () => {

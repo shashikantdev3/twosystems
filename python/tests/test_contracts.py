@@ -75,7 +75,9 @@ def test_error_messages_name_the_offending_field() -> None:
     assert "missing the required field 'session'" in " ".join(validate_event(missing).errors)
 
 
-@pytest.mark.parametrize("name", ["events.schema.json", "decisions-lock.schema.json"])
+@pytest.mark.parametrize(
+    "name", ["events.schema.json", "decisions-lock.schema.json", "moment.schema.json"]
+)
 def test_packaged_schemas_match_the_repository_root(name: str) -> None:
     packaged = ROOT / "python" / "src" / "twosystems" / "schemas" / name
     assert packaged.read_bytes() == (ROOT / "schemas" / name).read_bytes(), (

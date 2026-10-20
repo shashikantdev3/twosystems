@@ -10,11 +10,11 @@ The Claude Code plugin is not published anywhere: Claude Code installs it from t
 
 | Tag | npm (`packages/core/package.json`) | PyPI (`python/pyproject.toml`) | Claude Code plugin (`plugin.json` and `hooks/plugin/version.ts`) | npm dist-tag |
 |---|---|---|---|---|
-| `v0.1.0-alpha.2` | `0.1.0-alpha.2` | `0.1.0a2` | `0.1.0-alpha.2` | `alpha` |
+| `v0.1.0-alpha.3` | `0.1.0-alpha.3` | `0.1.0a3` | `0.1.0-alpha.3` | `alpha` |
 | `v0.1.0-rc.1` | `0.1.0-rc.1` | `0.1.0rc1` | `0.1.0-rc.1` | `rc` |
 | `v0.1.0` | `0.1.0` | `0.1.0` | `0.1.0` | `latest` |
 
-`node scripts/check-release.mjs v0.1.0-alpha.2` checks a tag before you push it.
+`node scripts/check-release.mjs v0.1.0-alpha.3` checks a tag before you push it.
 
 ## One-time setup
 
@@ -35,9 +35,9 @@ The Claude Code plugin is not published anywhere: Claude Code installs it from t
 2. Check and push the tag:
 
    ```bash
-   node scripts/check-release.mjs v0.1.0-alpha.2
-   git tag v0.1.0-alpha.2
-   git push origin v0.1.0-alpha.2
+   node scripts/check-release.mjs v0.1.0-alpha.3
+   git tag v0.1.0-alpha.3
+   git push origin v0.1.0-alpha.3
    ```
 
 3. Watch the release workflow in the Actions tab. A version that is already on npm (such as the first one, published by hand) is skipped, not treated as an error.

@@ -1,9 +1,9 @@
-// The twosystems command: hook, receipt, doctor.
+// The twosystems command: hook, receipt, doctor, moments.
 // Part of twosystems, created by Shashikant. https://github.com/shashikantdev3/twosystems
 import { access, appendFile, constants, mkdir, stat, truncate } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import type { Agent, DecisionName, Engine as EngineInfo } from "./contracts.js";
+import { type Agent, type DecisionName, type Engine as EngineInfo } from "./contracts.js";
 import { type Config, cacheTtlFor, readConfig } from "./config.js";
 import { createEngine } from "./engines/index.js";
 import { EngineError } from "./engines/types.js";
@@ -11,6 +11,19 @@ import { readEventLog } from "./eventlog.js";
 import { handleHook, recordEvents } from "./hookrunner.js";
 import { type LoadedLock, builtInLock } from "./lock.js";
 import { readLock } from "./lockfile.js";
+import { mergeMoments } from "./moments.js";
+import {
+  MomentsFileError,
+  defaultProjectsDir,
+  findSessionFiles,
+  hasScoreFrom,
+  isCurrent,
+  momentsFromSession,
+  readMomentsFile,
+  scoreMoments,
+  updateMomentsFile,
+} from "./momentsio.js";
+import { RulesEngine } from "./engines/rules.js";
 import { QUESTIONS } from "./questions.js";
 import { buildReceipt } from "./receipt.js";
 import { formatReceipt, money } from "./receipttext.js";
@@ -28,6 +41,7 @@ Usage:
   twosystems hook --agent <name> [--event <name>]   Run as an agent hook: JSON in on stdin, JSON out on stdout.
   twosystems receipt [--days <n>] [--json]          What twosystems did, cost and saved.
   twosystems doctor [--live]                        Check the setup; --live asks the decision model once.
+  twosystems moments [options]                      Find moments in saved Claude Code sessions for calibration.
   twosystems version
 
 Agents: ${AGENTS.join(", ")}.
@@ -44,6 +58,30 @@ Settings (environment variables):
   OLLAMA_HOST              Ollama address (default http://127.0.0.1:11434)
 
 Docs: https://github.com/shashikantdev3/twosystems`;
+
+const MOMENTS_HELP = `twosystems moments: find the moments in your saved Claude Code sessions where
+twosystems would have asked its decision model, for labelling with
+twosystems-calibrate. Everything stays on this machine unless you score with a
+remote engine, which sends each moment's short redacted summary, as a live check would.
+
+Usage:
+  twosystems moments [--from <folder or file>]... [--days <n>] [--out <file>]
+                     [--score | --rescore] [--labelled-only] [--window <tokens>]
+
+  --from <path>     Saved sessions to read (default: ~/.claude/projects, or CLAUDE_CONFIG_DIR/projects).
+  --days <n>        Only sessions changed in the last n days.
+  --out <file>      Moments file to add to (default: ~/.twosystems/moments.jsonl). Labels and
+                    scores already in it are kept.
+  --score           Also ask the configured decision engine about moments it has not scored yet.
+                    A remote engine receives each moment's short redacted summary.
+  --rescore         Ask it again about every moment, to check for drift with twosystems-calibrate check.
+  --labelled-only   With --score or --rescore: only moments that have a label.
+  --cache-ttl <s>   Prompt cache lifetime for the cache-expired signal and the idle check
+                    (default: as for the hook command).
+  --window <tokens> Context window to assume (default: 1000000 for a session with a request over
+                    200000 tokens, else 200000).
+
+Every moment also gets a free score from the rules engine.`;
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -220,6 +258,125 @@ async function runDoctor(args: string[]): Promise<number> {
   return ok ? 0 : 1;
 }
 
+async function runMoments(args: string[]): Promise<number> {
+  let values;
+  try {
+    ({ values } = parseArgs({
+      args,
+      options: {
+        from: { type: "string", multiple: true },
+        days: { type: "string" },
+        out: { type: "string" },
+        score: { type: "boolean" },
+        rescore: { type: "boolean" },
+        "labelled-only": { type: "boolean" },
+        "cache-ttl": { type: "string" },
+        window: { type: "string" },
+        help: { type: "boolean", short: "h" },
+      },
+      strict: true,
+    }));
+  } catch (error) {
+    process.stderr.write(`${(error as Error).message}\nRun twosystems moments --help.\n`);
+    return 2;
+  }
+  if (values.help) {
+    process.stdout.write(`${MOMENTS_HELP}\n`);
+    return 0;
+  }
+  const config = readConfig();
+  const days = values.days === undefined ? undefined : Number(values.days);
+  if (days !== undefined && (!Number.isFinite(days) || days <= 0)) {
+    process.stderr.write("--days must be a positive number\n");
+    return 2;
+  }
+  const ttl = values["cache-ttl"] === undefined ? cacheTtlFor(config, "claude-code") : Number(values["cache-ttl"]);
+  if (!Number.isFinite(ttl) || ttl <= 0) {
+    process.stderr.write("--cache-ttl must be a positive number of seconds\n");
+    return 2;
+  }
+  const window = values.window === undefined ? undefined : Number(values.window);
+  if (window !== undefined && (!Number.isInteger(window) || window < 1_000)) {
+    process.stderr.write("--window must be a whole number of tokens, such as 200000 or 1000000\n");
+    return 2;
+  }
+  const out = values.out ?? join(config.home, "moments.jsonl");
+
+  let kept;
+  try {
+    kept = await readMomentsFile(out);
+  } catch (error) {
+    const reason = error instanceof MomentsFileError ? error.message : `${out} could not be read`;
+    process.stderr.write(`${reason}\nNothing was changed. Fix or move that file, then run again.\n`);
+    return 1;
+  }
+
+  const sources = values.from ?? [defaultProjectsDir()];
+  const { files, missing } = await findSessionFiles(sources, days);
+  for (const source of missing) process.stderr.write(`Not found, skipped: ${source}\n`);
+  const fresh = [];
+  let unreadable = 0;
+  for (const file of files) {
+    try {
+      fresh.push(...(await momentsFromSession(file, { cacheTtlSeconds: ttl, ...(window === undefined ? {} : { window }) })));
+    } catch {
+      unreadable += 1;
+    }
+  }
+  const { moments, changed } = mergeMoments(kept, fresh);
+
+  // The rules engine is free and local, so every current moment gets its score.
+  const rules = new RulesEngine();
+  const unscoredByRules = moments.filter((m) => isCurrent(m) && !hasScoreFrom(m, rules));
+  await scoreMoments(rules, unscoredByRules, { timeoutMs: 1000, concurrency: 1 });
+
+  let scoring = "";
+  if (values.score || values.rescore) {
+    const engine = createEngine(config);
+    if (engine.info.kind === "rules") {
+      scoring = "No decision model is set up (set OPENROUTER_API_KEY, or TWOSYSTEMS_ENGINE=ollama), so only rules scores were added.";
+    } else {
+      const outdated = moments.filter((m) => !isCurrent(m)).length;
+      const due = moments.filter(
+        (m) => isCurrent(m) && (!values["labelled-only"] || m.label !== undefined) && (values.rescore || !hasScoreFrom(m, engine)),
+      );
+      const model = engine.info.model ? ` (${engine.info.model})` : "";
+      const where = engine.info.kind === "ollama" ? "your local Ollama" : `${engine.info.kind}, a remote service`;
+      process.stderr.write(`Scoring ${due.length} moment(s) with ${engine.info.kind}${model}: each moment's short redacted summary goes to ${where}...\n`);
+      const result = await scoreMoments(engine, due, { timeoutMs: Math.max(config.timeoutMs, 10_000) });
+      scoring = `Scored ${result.scored} moment(s) with ${engine.info.kind}${model}, ${money(result.costUsd)}.`;
+      if (result.failed > 0) scoring += ` ${result.failed} failed (first: ${result.firstError ?? "unknown"}); run again to retry them.`;
+      if (outdated > 0) scoring += ` ${outdated} moment(s) were built for an older wording of their question and were not scored.`;
+    }
+  }
+
+  // Labels given in the meantime (twosystems-calibrate label) are kept: the file is read again under a lock and merged.
+  let written;
+  try {
+    written = await updateMomentsFile(out, moments);
+  } catch (error) {
+    const reason = error instanceof MomentsFileError ? error.message : `${out} could not be written (${(error as Error).message})`;
+    process.stderr.write(`${reason}\nNothing was changed.\n`);
+    return 1;
+  }
+  const saved = written.moments;
+  const keptIds = new Set(kept.map((m) => m.id));
+  const added = saved.filter((m) => !keptIds.has(m.id)).length;
+  const count = (name: string) => saved.filter((m) => m.decision === name).length;
+  const labelled = saved.filter((m) => m.label !== undefined).length;
+  const lines = [
+    `Read ${files.length} saved session(s)${unreadable > 0 ? `, ${unreadable} could not be read` : ""}.`,
+    `${saved.length} moment(s) in ${out}: ${count("stuck")} stuck, ${count("fresh_start")} fresh start; ${added} new, ${labelled} labelled.`,
+  ];
+  if (written.copies > 0) lines.push(`${written.copies} unlabelled copy(ies) of moments from forked or resumed sessions were left out.`);
+  if (written.refused > 0) lines.push(`${written.refused} moment(s) did not fit the moments format and kept their saved version or were left out; please report this.`);
+  if (changed > 0) lines.push(`${changed} moment(s) changed their question or summary since last time: labels kept, old scores dropped.`);
+  if (scoring !== "") lines.push(scoring);
+  lines.push("Next: twosystems-calibrate label (pip install --pre twosystems).");
+  process.stdout.write(`${lines.join("\n")}\n`);
+  return 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   switch (command) {
@@ -229,6 +386,8 @@ export async function main(argv: string[]): Promise<number> {
       return runReceipt(rest);
     case "doctor":
       return runDoctor(rest);
+    case "moments":
+      return runMoments(rest);
     case "version":
     case "--version":
     case "-v":

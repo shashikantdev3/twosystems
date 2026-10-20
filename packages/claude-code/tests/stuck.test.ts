@@ -2,7 +2,8 @@
 // before the next step, only where that dialog is shown, and only answers the
 // user gave are recorded. Part of twosystems, created by Shashikant.
 import { type Engine, expect, test } from "claude-code/testing";
-import { type World, actions, decisions, start, world } from "./world.js";
+import { defaultLock } from "../hooks/core/portable.js";
+import { HOME, type World, actions, decisions, start, world } from "./world.js";
 
 const FAILING = "FAIL src/cart.test.ts\nAssertionError: expected 2 to equal 3\n    at src/cart.test.ts:14:5";
 const REFUSED =
@@ -42,7 +43,7 @@ test("repeated failures make Claude Code ask; a Yes is recorded once the dialog 
   expect(actions(w)).toEqual(["keep_going"]);
   const record = w.events().find((e) => e["type"] === "decision");
   expect(record?.["agent"]).toBe("claude-code");
-  expect(record?.["adapter_version"]).toBe("0.1.0-alpha.2");
+  expect(record?.["adapter_version"]).toBe("0.1.0-alpha.3");
   expect(record?.["agent_version"]).toBe("2.1.303");
 
   // The next steps are not questioned again on the same evidence.
@@ -230,4 +231,35 @@ test("two calls checked at once pay for one model call", { options: { engine: "o
   const verdicts = await both;
   expect(requests).toBe(1);
   expect(verdicts.map((v) => v.decision).sort()).toEqual(["allow", "ask"]);
+});
+
+test("a fitted decisions.lock in the twosystems folder replaces the built-in thresholds", RULES, async ($, on) => {
+  const w = world(on);
+  const lock = defaultLock({ kind: "rules" });
+  if (lock.decisions.stuck) lock.decisions.stuck.thresholds = { stuck: { act: 1, unsure: 1 } };
+  delete lock.decisions.fresh_start;
+  lock.created_at = "2026-10-21T09:00:00.000Z";
+  w.files.set(`${HOME}/.twosystems/decisions.lock`, JSON.stringify(lock));
+  await start($);
+  await failThreeTimes($, w);
+  // The rules engine is never fully sure, so thresholds of 1 neither act nor count as unsure.
+  expect((await $.tool.check({ tool: "Bash", input: { command: COMMAND }, tool_use_id: "toolu_4" })).decision).toBe("allow");
+  await w.clock.settle();
+  expect(decisions(w)[0]?.["band"]).toBe("silent");
+  expect(decisions(w)[0]?.["reason"]).toBe(undefined);
+  const out = await $.command.run({ command: "twosystems", args: "", origin: { kind: "composer" }, presentation: { isFullscreen: false, columns: 100 } });
+  expect(out.text ?? "").toContain(
+    "decisions.lock from 2026-10-21T09:00:00.000Z: stuck fitted; fresh_start not in the lock, built-in thresholds.",
+  );
+});
+
+test("a damaged decisions.lock is ignored with a note, and the built-in thresholds apply", RULES, async ($, on) => {
+  const w = world(on);
+  w.files.set(`${HOME}/.twosystems/decisions.lock`, '{"lock_version": 2}');
+  await start($);
+  await failThreeTimes($, w);
+  expect((await $.tool.check({ tool: "Bash", input: { command: COMMAND }, tool_use_id: "toolu_4" })).decision).toBe("ask");
+  const out = await $.command.run({ command: "twosystems", args: "", origin: { kind: "composer" }, presentation: { isFullscreen: false, columns: 100 } });
+  expect(out.text ?? "").toContain("decisions.lock in the twosystems folder is not valid");
+  expect(out.text ?? "").toContain("built-in thresholds, not yet fitted on data");
 });

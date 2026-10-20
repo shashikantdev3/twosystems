@@ -107,3 +107,43 @@ export interface ValidationResult {
 export const MAX_EVENT_BYTES = 16_384;
 /** Largest decisions.lock accepted, in UTF-8 bytes. */
 export const MAX_LOCK_BYTES = 1_048_576;
+
+/** What one engine answered for a moment, as moments.jsonl stores it. */
+export interface MomentScore {
+  engine: Engine;
+  probabilities: Record<string, number>;
+  cost_usd?: number;
+  at: string;
+}
+
+/**
+ * What started the check: before a tool call ("tool"), after a turn ("turn"),
+ * after an idle spell ("idle"), or before a typed prompt is sent ("prompt").
+ */
+export type MomentTrigger = "tool" | "turn" | "idle" | "prompt";
+
+/**
+ * One moment from a past session where twosystems would have asked its
+ * decision model, for labelling and fitting thresholds (moment.schema.json).
+ */
+export interface Moment {
+  v: 1;
+  id: string;
+  decision: DecisionName;
+  trigger?: MomentTrigger;
+  agent: Agent;
+  session: string;
+  at: string;
+  question_hash: string;
+  labels: string[];
+  signals: string[];
+  state: { lines: string[]; hash: string };
+  /** What happened next, redacted; shown to the person labelling, never sent to a model. */
+  after?: string[];
+  scores: MomentScore[];
+  label?: string;
+  labelled_at?: string;
+}
+
+/** Largest moment record accepted, in UTF-8 bytes. Real records are under 8 KB. */
+export const MAX_MOMENT_BYTES = 65_536;

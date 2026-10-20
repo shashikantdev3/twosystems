@@ -2,7 +2,7 @@
 
 twosystems is built in short sprints, each about one week at an evenings-and-weekends pace. Every sprint ends with a review against its exit checks before anything is merged or published. Sprint lengths are targets, not promises.
 
-**Current sprint:** 2 (the Claude Code plugin). Sprints 0 and 1 are done; the first alphas are on npm (0.1.0-alpha.1) and PyPI (0.1.0a1).
+**Current sprint:** 3 (the calibration kit). Sprints 0 to 2 are done: npm 0.1.0-alpha.2, PyPI 0.1.0a2 and the Claude Code plugin are out; Sprint 2's three days of daily use run alongside Sprint 3.
 
 The two long poles are labelling real sessions for calibration and collecting enough real usage for the verified receipt. Both start early and run in the background from Sprint 2 onwards.
 
@@ -55,6 +55,8 @@ The two long poles are labelling real sessions for calibration and collecting en
 
 **Exit checks:** fitted thresholds hold on held-out data; fitting is reproducible from the same inputs.
 
+**As built so far (20 October 2026):** the tools are done and tested; the labelling is the author's next step. Moments come from the TypeScript core, not from Python (decision 0007): `twosystems moments` replays saved Claude Code sessions at the plugin's own check points (before a tool call, after a turn, after an idle spell, and when it would hold a prompt) and keeps every moment where it would have asked the decision model, with the summary it would have sent; `--score` and `--rescore` ask the decision model. `twosystems-calibrate label`, `fit`, `check` and `report` work on that file, `moments.jsonl` (a new shared schema, written by both languages under one lock file). The fit picks one act threshold per decision by fixed-sequence testing with a one-sided Clopper-Pearson bound, and tests on a quarter of the sessions kept out by a hash of the session id. The Claude Code plugin now uses a fitted `decisions.lock` from the twosystems folder, and every adapter drops a lock fitted on another model version. The first checker review failed on one blocker (a score with an odd model version could drop labelled moments) and eleven other findings; all are fixed. Still to do: label about 300 moments, fit, ship the fitted thresholds as the new defaults.
+
 ## Sprint 4: VS Code extension and Copilot hooks
 
 **Goal:** reach the many developers who use GitHub Copilot in VS Code.
@@ -71,6 +73,7 @@ The two long poles are labelling real sessions for calibration and collecting en
 
 - The 10% holdout running in both adapters; confidence intervals by bootstrap; the verified figure appears only when the interval clears zero; our own overhead is subtracted.
 - Privacy tests for redaction; behaviour checks for timeouts, missing keys and offline use.
+- Export decisions as ProvenKit AI Decision Records (`twosystems export --aidr`), once ProvenKit's canonical hashing follows RFC 8785, so a TypeScript writer and ProvenKit's Python checker compute the same hashes.
 - Close the one known one-sided gap in the Claude Code plugin: a stuck decision on the shown side is written only when its question settles, so a plugin reload or a killed process while the dialog is up loses it (keep pending questions in Claude Code's session state, or write the decision at the ask).
 - Documentation site and a written method for how savings are measured.
 
@@ -91,5 +94,5 @@ The two long poles are labelling real sessions for calibration and collecting en
 
 - Codex hooks (v1.1).
 - Reasoning-effort picker, shipped only if it beats existing routers on measured results.
-- Tamper-evident decision records, based on the author's ProvenKit format.
+- Signed checkpoints for the ProvenKit decision records, anchored outside the machine (moved up: the export itself is in Sprint 5).
 - Gemini CLI and other agents as their hook systems allow.

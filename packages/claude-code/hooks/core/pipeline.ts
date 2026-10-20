@@ -139,17 +139,19 @@ export async function evaluate(input: EvaluateInput): Promise<Evaluation> {
       Object.entries(answer.probabilities).map(([label, p]) => [label, round(Math.min(1, Math.max(0, p)), 4)]),
     );
 
-    // Use the fitted thresholds only when they were fitted for this engine and this exact question.
+    // Use the fitted thresholds only when they were fitted for this engine, model version and exact question.
     const entry = input.lock.lock.decisions[input.name];
-    const mismatch = lockMismatch(entry, input.name, input.engine.info);
+    const mismatch = lockMismatch(entry, input.name, input.engine.info, decision.engine.model_version);
     const thresholds =
       mismatch === null && entry !== undefined
         ? entry.thresholds
         : (defaultLock(input.engine.info).decisions[input.name]?.thresholds ?? {});
     decision.lock_hash = input.lock.hash;
-    if (mismatch !== null && input.lock.source !== "built-in") decision.reason = "lock_mismatch";
+    // A lock fitted for only one decision leaves the other on the built-in thresholds; that is not a mismatch.
+    if (mismatch !== null && mismatch !== "missing" && input.lock.source !== "built-in") decision.reason = "lock_mismatch";
 
-    const { band, suggestion } = applyThresholds(answer.probabilities, thresholds);
+    // The rounded probabilities, as logged and as the fit saw them, so a threshold means the same in both.
+    const { band, suggestion } = applyThresholds(decision.probabilities, thresholds);
     decision.band = band;
     if (suggestion !== undefined) decision.suggestion = suggestion;
   } catch (error) {

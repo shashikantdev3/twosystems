@@ -122,7 +122,7 @@ function redactLongToken(token: string): string {
 
 /** Replace secrets with [redacted]. Labels such as "password=" are kept so the text still reads. */
 export function redact(text: string): string {
-  let out = text;
+  let out = wellFormed(text);
   for (const rule of RULES) {
     out = out.replace(rule.pattern, (_match: string, label?: unknown) =>
       rule.keepLabel && typeof label === "string" ? `${label}${REDACTED}` : REDACTED,
@@ -137,6 +137,22 @@ export function redact(text: string): string {
  * cut short before it can be recognised.
  */
 export function redactAndClip(text: string, max: number): string {
-  const clean = redact(text.slice(0, max * 4)).replace(/\s+/g, " ").trim();
-  return clean.length <= max ? clean : `${clean.slice(0, max - 3)}...`;
+  const clean = redact(clip(text, max * 4)).replace(/\s+/g, " ").trim();
+  return clean.length <= max ? clean : `${clip(clean, max - 3)}...`;
+}
+
+/**
+ * The first `max` UTF-16 units of the text, or one fewer when the cut would
+ * split an emoji or another character outside the Basic Multilingual Plane, so
+ * a cut never leaves half a character.
+ */
+export function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const last = text.charCodeAt(max - 1);
+  return text.slice(0, last >= 0xd800 && last <= 0xdbff ? max - 1 : max);
+}
+
+/** Every half character (an unpaired UTF-16 surrogate) replaced by U+FFFD, so the text is valid Unicode everywhere. */
+export function wellFormed(text: string): string {
+  return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g, (unit) => (unit.length === 2 ? unit : "\uFFFD"));
 }

@@ -21,7 +21,7 @@ This document describes how twosystems is put together. It is a living document 
      Python package (twosystems-calibrate): label, fit, check, report
 ```
 
-The decision logic is written once, in TypeScript, because both Claude Code plugins and VS Code extensions run JavaScript. The Python package works offline on the same files: it reads the event log and session transcripts, and writes `decisions.lock`.
+The decision logic is written once, in TypeScript, because both Claude Code plugins and VS Code extensions run JavaScript. The Python package works offline on the files the core writes: it labels and fits on `moments.jsonl`, which `twosystems moments` builds by replaying saved Claude Code sessions with the core's own signals and summary, at the points where the Claude Code plugin checks, reads the event log for its report, and writes `decisions.lock` (decision 0007).
 
 ## Layers
 
@@ -44,10 +44,11 @@ The watchman must never cost more than it saves. Rules run locally. System 1 run
 
 ## Contracts
 
-Two files connect the parts. Their JSON Schemas live in [`schemas/`](../schemas/).
+Three files connect the parts. Their JSON Schemas live in [`schemas/`](../schemas/).
 
 - **`events.jsonl`**: one line per event or decision, append-only, stored in `~/.twosystems/`. Adapters that cannot append (the Claude Code plugin) write the same records to one file per session in `~/.twosystems/events.d/`; readers take both.
-- **`decisions.lock`**: calibrated thresholds per decision, with the engine and model version they were fitted on.
+- **`decisions.lock`**: calibrated thresholds per decision, with the engine and model version they were fitted on. Written by `twosystems-calibrate fit` to `~/.twosystems/decisions.lock`, where the hook command and the Claude Code plugin read it. An entry is used only with the engine and question wording it was fitted for, and not when the model reports a version other than the one it was fitted on; otherwise the built-in thresholds apply and the decision is logged as a lock mismatch.
+- **`moments.jsonl`**: the moments of past sessions where twosystems would have asked its decision model, with the redacted summary it would have sent, each engine's answer and the person's label. Written by `twosystems moments`, labelled and fitted by `twosystems-calibrate`. It holds redacted session text, so it stays on the machine.
 
 Both languages validate these files: the TypeScript core with ajv, the Python package with jsonschema. Each also runs checks a schema cannot express, such as every threshold naming a known label. Both apply the same strict rules: well-formed Unicode, the JSON grammar with every number fitting a 64-bit float, no repeated keys and at most 32 levels of nesting, RFC 3339 timestamps with a time zone and no leap seconds, plain UUIDs, a size limit and a value limit per record, and the same way of splitting a log into lines. Both are built to return the same fixed error messages, which never repeat a rejected value. The same valid, invalid and edge-case examples in `schemas/examples/` run in both test suites, with the expected messages written down, so any difference between the two on those cases fails CI. Each package keeps a committed copy of the schemas, and CI fails if a copy differs from the root.
 
@@ -63,4 +64,4 @@ Suggestions are advice. If a decision model times out, a key is missing or the m
 
 ## Privacy
 
-Only the short summary sent to System 1 leaves the machine, after a redaction pass for secrets, and the same summary goes to System 2 if the user switches it on. A local decision model or the rules engine, with System 2 off, keeps everything on the machine. Event logs and session notes stay local; session notes hold redacted, shortened text and are deleted after seven days. The Claude Code plugin keeps its recent observations in memory only.
+Calibration adds one local file, `moments.jsonl`, with redacted summaries of past moments; it is read from and written to the user's own machine only, and nothing leaves it unless the user scores moments with a remote decision model, which then receives each moment's summary just as a live check would send it. Otherwise, only the short summary sent to System 1 leaves the machine, after a redaction pass for secrets, and the same summary goes to System 2 if the user switches it on. A local decision model or the rules engine, with System 2 off, keeps everything on the machine. Event logs and session notes stay local; session notes hold redacted, shortened text and are deleted after seven days. The Claude Code plugin keeps its recent observations in memory only.

@@ -7,7 +7,7 @@ import { OBSERVATION_LIMITS, rememberIn, toolCommand, toolFiles } from "../src/o
 import { exactUsageRecord, userActionRecord } from "../src/records.js";
 import type { Observation } from "../src/signals.js";
 
-const source = { agent: "claude-code" as const, session: "7f9c2a1e-0d3b-4c55-9a77-1b2c3d4e5f60", adapterVersion: "0.1.0-alpha.2" };
+const source = { agent: "claude-code" as const, session: "7f9c2a1e-0d3b-4c55-9a77-1b2c3d4e5f60", adapterVersion: "0.1.0-alpha.3" };
 
 test("an exact usage record fits the schema and adds up the context", () => {
   const record = exactUsageRecord(source, Date.parse("2026-10-19T10:00:00Z"), {
@@ -20,7 +20,7 @@ test("an exact usage record fits the schema and adds up the context", () => {
   assert.deepEqual(validateEvent(record), { ok: true, errors: [] });
   assert.equal(record.usage.context_tokens, 92_000);
   assert.equal(record.usage.source, "exact");
-  assert.equal(record.adapter_version, "0.1.0-alpha.2");
+  assert.equal(record.adapter_version, "0.1.0-alpha.3");
 });
 
 test("bad numbers and names are left out rather than written", () => {

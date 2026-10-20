@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shashikantdev3/twosystems/blob/main/schemas/moment.schema.json",
+  "title": "twosystems moment",
+  "description": "One moment from a past session where twosystems would have asked its decision model: the redacted summary it would have sent, the scores engines gave it, and the label a person gave it. One per line in moments.jsonl, written by `twosystems moments`, labelled and fitted by twosystems-calibrate. Kept on the user's machine. Part of twosystems, created by Shashikant.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "decision", "agent", "session", "at", "question_hash", "labels", "signals", "state", "scores"],
+  "properties": {
+    "v": { "const": 1 },
+    "id": {
+      "$ref": "#/$defs/token",
+      "description": "Stable id, from the decision, trigger, session and time: the same moment read again from the same session gets the same id, so labels survive a new export."
+    },
+    "decision": { "enum": ["stuck", "fresh_start"] },
+    "trigger": {
+      "enum": ["tool", "turn", "idle", "prompt"],
+      "description": "What started the check: before a tool call, after a turn, after an idle spell, or before a typed prompt is sent."
+    },
+    "agent": { "enum": ["claude-code", "copilot", "codex", "cursor", "windsurf", "other"] },
+    "session": { "$ref": "#/$defs/token" },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the moment happened, RFC 3339 with a time zone. Leap seconds are not accepted."
+    },
+    "question_hash": {
+      "$ref": "#/$defs/sha256",
+      "description": "Hash of the exact question wording the moment was built for."
+    },
+    "labels": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/label" }
+    },
+    "signals": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/label" },
+      "description": "The rule signals that fired."
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lines", "hash"],
+      "properties": {
+        "lines": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "type": "string", "maxLength": 2400 },
+          "description": "The redacted summary the decision model reads."
+        },
+        "hash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "after": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "type": "string", "maxLength": 400 },
+      "description": "What happened next, redacted. Shown to the person labelling; never sent to a model."
+    },
+    "scores": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/score" },
+      "description": "What each engine answered, oldest first."
+    },
+    "label": {
+      "$ref": "#/$defs/label",
+      "description": "The person's answer: one of the labels."
+    },
+    "labelled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the label was given. Present exactly when label is."
+    }
+  },
+  "$defs": {
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:/@+-]+$",
+      "description": "A short identifier: letters, digits and . _ : / @ + - only, no spaces."
+    },
+    "label": { "type": "string", "maxLength": 32, "pattern": "^[a-z][a-z_]*$" },
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["rules", "openrouter", "ollama", "llm"] },
+        "model": { "$ref": "#/$defs/token" },
+        "model_version": { "$ref": "#/$defs/token" }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "probabilities", "at"],
+      "properties": {
+        "engine": { "$ref": "#/$defs/engine" },
+        "probabilities": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": { "maxLength": 32, "pattern": "^[a-z][a-z_]*$" },
+          "additionalProperties": { "$ref": "#/$defs/probability" }
+        },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

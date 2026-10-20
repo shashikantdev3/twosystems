@@ -24,6 +24,8 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError, val
 MAX_EVENT_BYTES = 16_384
 #: Largest decisions.lock accepted, in UTF-8 bytes.
 MAX_LOCK_BYTES = 1_048_576
+#: Largest moment accepted, in UTF-8 bytes. Real moments are under 8 KB.
+MAX_MOMENT_BYTES = 65_536
 
 # RFC 3339 date-time with a mandatory time zone, checked by hand so that both
 # languages apply the same rule: no leap seconds, no space separator, offsets
@@ -175,6 +177,8 @@ MAX_DEPTH = 32
 MAX_EVENT_VALUES = 4_096
 #: Most values in one decisions.lock. The largest real lock holds about 33,000.
 MAX_LOCK_VALUES = 65_536
+#: Most values in one moment. Real moments hold about 60.
+MAX_MOMENT_VALUES = 4_096
 
 _SAFE_FIELD = re.compile(r"[A-Za-z0-9_.-]{1,32}", re.ASCII)
 
@@ -526,3 +530,37 @@ def validate_lock_text(text: str) -> ValidationResult:
         return ValidationResult(ok=False, errors=[problem])
     ok, value, error = parse_json(body)
     return validate_lock(value) if ok else ValidationResult(ok=False, errors=[error])
+
+
+def validate_moment(value: Any) -> ValidationResult:
+    """Validate one moment object (moment.schema.json).
+
+    The JSON Schema runs first, then the rules a schema cannot express: the label
+    and every scored label are among the labels, and labelled_at is present
+    exactly when label is.
+    """
+    errors = _schema_errors(
+        _validator("moment.schema.json"), value, MAX_MOMENT_VALUES, MAX_MOMENT_BYTES
+    )
+    if errors:
+        return ValidationResult(ok=False, errors=errors)
+    labels = value["labels"]
+    if "label" in value and value["label"] not in labels:
+        errors.append("/label is not one of the labels")
+    if ("label" in value) != ("labelled_at" in value):
+        errors.append("/labelled_at must be present exactly when label is")
+    for index, score in enumerate(value["scores"]):
+        for label in score["probabilities"]:
+            if label not in labels:
+                errors.append(f"/scores/{index}/probabilities/{label} is not one of the labels")
+    return ValidationResult(ok=not errors, errors=_tidy(errors))
+
+
+def validate_moment_text(text: str) -> ValidationResult:
+    """Parse and validate one moment from JSON text. A leading byte order mark is ignored."""
+    body = _strip_bom(text)
+    problem = _precheck(body, MAX_MOMENT_BYTES)
+    if problem is not None:
+        return ValidationResult(ok=False, errors=[problem])
+    ok, value, error = parse_json(body)
+    return validate_moment(value) if ok else ValidationResult(ok=False, errors=[error])

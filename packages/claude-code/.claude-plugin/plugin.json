@@ -1,7 +1,7 @@
 {
   "name": "twosystems",
   "displayName": "twosystems",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "A cheap, honest watchman for Claude Code: asks before the next step when the agent seems stuck, suggests /clear or /compact when a fresh start would save tokens, and keeps a receipt of what it cost and saved. Created by Shashikant.",
   "author": { "name": "Shashikant", "url": "https://github.com/shashikantdev3" },
   "homepage": "https://github.com/shashikantdev3/twosystems",

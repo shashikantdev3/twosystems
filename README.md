@@ -6,7 +6,7 @@ Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**.
 
 [![ci](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml/badge.svg)](https://github.com/shashikantdev3/twosystems/actions/workflows/ci.yml)
 
-> **Status: alpha (Sprint 2).** The Claude Code plugin runs all three checks inside Claude Code, and the `twosystems` command works with GitHub Copilot and Codex hooks. Both are tested, but not yet in long real use. Thresholds are cautious defaults until calibration lands in Sprint 3. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
+> **Status: alpha (Sprint 3).** The Claude Code plugin runs all three checks inside Claude Code, and the `twosystems` command works with GitHub Copilot and Codex hooks. Both are tested, but not yet in long real use. The calibration kit is built: you can fit thresholds on your own labelled sessions. The thresholds twosystems ships are still cautious defaults until they are fitted on about 300 labelled moments. Plans and progress are in [docs/roadmap.md](docs/roadmap.md). Star or watch the repository to follow along.
 
 ## The problem
 
@@ -18,7 +18,7 @@ Many tools promise to cut tokens, but a tool's own counter is not your bill. In 
 
 ## What twosystems does
 
-1. **Stuck check.** When the agent keeps running the same failing command or meeting the same error, twosystems asks you before its next step: allow it to keep going, or deny it and give the agent a hint. From Sprint 3, calibration lets you decide how rare a false alarm must be.
+1. **Stuck check.** When the agent keeps running the same failing command or meeting the same error, twosystems asks you before its next step: allow it to keep going, or deny it and give the agent a hint. Calibration lets you decide how rare a false alarm must be.
 2. **Fresh-start check.** When a new prompt looks unrelated to the work in the session, the conversation is large, or you come back after the cache has expired, it suggests clearing or compacting and lets you choose.
 3. **Honest receipt.** It reports its own cost, estimated savings, and a verified figure. The verified figure comes from a small random holdout: for about one moment in ten, twosystems stays silent on purpose, so results with and without it can be compared. Recovery cost (tokens spent rebuilding context after a fresh start) is planned for Sprint 5.
 
@@ -50,7 +50,7 @@ The name comes from the idea of two kinds of thinking, a fast one and a slow one
 - **System 2** is a larger language model that can be switched on for the cases System 1 is unsure about. It is off by default.
 - **You** have the final say. twosystems never acts on its own: it shows a suggestion, and the agent stops only when you choose to stop it.
 
-From Sprint 3, thresholds will be calibrated on labelled examples, so that "confident" means something measurable, and stored in a `decisions.lock` file so that a model update cannot quietly change behaviour. Until then, cautious built-in thresholds apply.
+Thresholds can be calibrated on labelled moments from your own sessions, so that "confident" means something measurable: `twosystems moments` finds the moments in your saved Claude Code sessions, `twosystems-calibrate label` asks one key per moment, and `twosystems-calibrate fit` writes a `decisions.lock` chosen so that, with 95% confidence, no more than 5% of its interruptions are wrong (both numbers are yours to set). The guarantee assumes your labelled moments are a fair sample of the moments to come; moments from one session are alike, so treat it as a little optimistic. A lock is used only with the engine and question wording it was fitted for, and not when the model reports a version other than the one it was fitted on (when either side gives no version, the lock is used); anything else falls back to the built-in thresholds and is logged as a mismatch. After a model update, `twosystems-calibrate check` tells you whether the answers drifted. See the [Python package](python/README.md). Until you fit your own, cautious built-in thresholds apply.
 
 ## Where it will run
 
@@ -59,8 +59,8 @@ From Sprint 3, thresholds will be calibrated on labelled examples, so that "conf
 | Claude Code (this repository's marketplace) | Plugin with all three checks and receipts from exact token counts | Alpha (Sprint 2) |
 | VS Code Marketplace | Extension for GitHub Copilot users, plus a receipt view for Claude Code in VS Code | Planned for v1 |
 | Open VSX | The same extension for Cursor and Windsurf | Planned for v1 |
-| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`) | Alpha |
-| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`validate` now; `label`, `fit`, `check`, `report` in Sprint 3) | Alpha |
+| npm | The TypeScript core and the `twosystems` command (`hook`, `receipt`, `doctor`, `moments`) | Alpha |
+| PyPI | Calibration and reporting tools, run as `twosystems-calibrate` (`validate`, `label`, `fit`, `check`, `report`) | Alpha |
 | Codex | Hooks support through the `twosystems` command | Alpha, untested with a live session |
 
 ## Honest limits
@@ -72,7 +72,7 @@ From Sprint 3, thresholds will be calibrated on labelled examples, so that "conf
 
 ## Privacy
 
-Everything is logged locally, in `~/.twosystems/` (the Claude Code plugin writes one file per session in `~/.twosystems/events.d/`). The event log holds no prompts or code, only decisions, sizes, costs and a hash of what was judged. The hook command's short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) stay in `~/.twosystems/sessions/` and are removed once unused for seven days (checked once a day while hooks run). The only data that leaves your machine is a short summary of the moment being judged (about 600 tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With the rules engine or a local model, nothing leaves your machine.
+Everything is logged locally, in `~/.twosystems/` (the Claude Code plugin writes one file per session in `~/.twosystems/events.d/`). The event log holds no prompts or code, only decisions, sizes, costs and a hash of what was judged. The hook command's short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) stay in `~/.twosystems/sessions/` and are removed once unused for seven days (checked once a day while hooks run). The only data that leaves your machine is a short summary of the moment being judged (about 600 tokens at most, after a redaction pass for secrets), sent to the decision model you configure and, if you switch it on, to System 2. With the rules engine or a local model, nothing leaves your machine. For calibration, `twosystems moments` writes `~/.twosystems/moments.jsonl` (readable by you only), which holds redacted text from your saved sessions so you can label them; it is built from files already on your machine and stays there unless you score moments with a remote decision model, which then receives each moment's short summary exactly as a live check would.
 
 ## Repository layout
 
@@ -81,7 +81,7 @@ packages/core/         TypeScript core: signals, decision engines, receipt maths
 packages/claude-code/  Claude Code plugin (a mod; installs from .claude-plugin/marketplace.json)
 packages/vscode/       VS Code extension (VS Code Marketplace and Open VSX)
 python/                Python package: labelling, calibration, drift checks, reports (PyPI, twosystems-calibrate)
-schemas/               Shared file formats: the event log and decisions.lock
+schemas/               Shared file formats: the event log, decisions.lock and moments.jsonl
 docs/                  Architecture, decision records and roadmap
 ```
 

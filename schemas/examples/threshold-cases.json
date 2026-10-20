@@ -1,0 +1,285 @@
+[
+  {
+    "why": "stuck clears act",
+    "probabilities": {
+      "progressing": 0.05,
+      "stuck": 0.95
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "pause"
+    }
+  },
+  {
+    "why": "stuck exactly at act",
+    "probabilities": {
+      "progressing": 0.1,
+      "stuck": 0.9
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "pause"
+    }
+  },
+  {
+    "why": "stuck only unsure",
+    "probabilities": {
+      "progressing": 0.2,
+      "stuck": 0.8
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "unsure",
+      "suggestion": "pause"
+    }
+  },
+  {
+    "why": "stuck below unsure",
+    "probabilities": {
+      "progressing": 0.4,
+      "stuck": 0.6
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "silent"
+    }
+  },
+  {
+    "why": "stuck probability missing",
+    "probabilities": {
+      "progressing": 1
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "silent"
+    }
+  },
+  {
+    "why": "clear acts",
+    "probabilities": {
+      "continue": 0.05,
+      "compact": 0.05,
+      "clear": 0.9
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "clear"
+    }
+  },
+  {
+    "why": "compact acts",
+    "probabilities": {
+      "continue": 0.02,
+      "compact": 0.95,
+      "clear": 0.03
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "compact"
+    }
+  },
+  {
+    "why": "clear unsure and compact silent",
+    "probabilities": {
+      "continue": 0.3,
+      "compact": 0.05,
+      "clear": 0.65
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "unsure",
+      "suggestion": "clear"
+    }
+  },
+  {
+    "why": "higher label checked first for act",
+    "probabilities": {
+      "continue": 0,
+      "compact": 0.92,
+      "clear": 0.86
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "compact"
+    }
+  },
+  {
+    "why": "act beats a higher unsure label",
+    "probabilities": {
+      "continue": 0,
+      "compact": 0.88,
+      "clear": 0.86
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "clear"
+    }
+  },
+  {
+    "why": "tie broken by label name",
+    "probabilities": {
+      "continue": 0,
+      "compact": 0.95,
+      "clear": 0.95
+    },
+    "thresholds": {
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "clear"
+    }
+  },
+  {
+    "why": "continue never suggests",
+    "probabilities": {
+      "continue": 0.99,
+      "compact": 0.005,
+      "clear": 0.005
+    },
+    "thresholds": {
+      "continue": {
+        "act": 0.5,
+        "unsure": 0.4
+      },
+      "clear": {
+        "act": 0.85,
+        "unsure": 0.6
+      },
+      "compact": {
+        "act": 0.9,
+        "unsure": 0.7
+      }
+    },
+    "expected": {
+      "band": "silent"
+    }
+  },
+  {
+    "why": "threshold of 1 needs certainty",
+    "probabilities": {
+      "progressing": 0.0001,
+      "stuck": 0.9999
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 1,
+        "unsure": 1
+      }
+    },
+    "expected": {
+      "band": "silent"
+    }
+  },
+  {
+    "why": "threshold of 1 met",
+    "probabilities": {
+      "progressing": 0,
+      "stuck": 1
+    },
+    "thresholds": {
+      "stuck": {
+        "act": 1,
+        "unsure": 1
+      }
+    },
+    "expected": {
+      "band": "act",
+      "suggestion": "pause"
+    }
+  },
+  {
+    "why": "no thresholds",
+    "probabilities": {
+      "progressing": 0,
+      "stuck": 1
+    },
+    "thresholds": {},
+    "expected": {
+      "band": "silent"
+    }
+  }
+]

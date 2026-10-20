@@ -69,10 +69,18 @@ export function builtInLock(engine: EngineInfo): LoadedLock {
 }
 
 /** Why a lock entry cannot be used for this engine and question, or null when it can. */
-export function lockMismatch(entry: LockDecision | undefined, name: DecisionName, engine: EngineInfo): string | null {
+export function lockMismatch(
+  entry: LockDecision | undefined,
+  name: DecisionName,
+  engine: EngineInfo,
+  modelVersion?: string,
+): string | null {
   if (entry === undefined) return "missing";
   if (entry.question_hash !== questionHash(QUESTIONS[name])) return "question";
   if (entry.engine.kind !== engine.kind || (entry.engine.model ?? "") !== (engine.model ?? "")) return "engine";
+  // Thresholds fitted on one model version say nothing about another; when either side does not say, the lock is trusted.
+  const fitted = entry.engine.model_version;
+  if (fitted !== undefined && modelVersion !== undefined && fitted !== modelVersion) return "model_version";
   return null;
 }
 
@@ -104,4 +112,49 @@ export function applyThresholds(
     }
   }
   return { band: "silent" };
+}
+
+const LOCK_ENGINES = new Set(["rules", "openrouter", "ollama", "llm"]);
+
+function isProbability(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+/**
+ * A decisions.lock read where the full schema validator cannot run (inside the
+ * Claude Code plugin): the fields the thresholds depend on are checked by
+ * hand, and anything doubtful gives null, so the built-in thresholds apply.
+ * The twosystems command validates every field with the JSON Schema instead.
+ */
+export function asLock(value: unknown): DecisionsLock | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const lock = value as Record<string, unknown>;
+  if (lock["lock_version"] !== 1 || typeof lock["created_at"] !== "string" || typeof lock["created_by"] !== "string") return null;
+  const holdout = lock["holdout_rate"];
+  if (typeof holdout !== "number" || !(holdout >= 0 && holdout <= 0.5)) return null;
+  const decisions = lock["decisions"];
+  if (typeof decisions !== "object" || decisions === null || Array.isArray(decisions)) return null;
+  const names = Object.keys(decisions);
+  if (names.length === 0 || names.some((n) => n !== "stuck" && n !== "fresh_start")) return null;
+  for (const entry of Object.values(decisions as Record<string, unknown>)) {
+    if (typeof entry !== "object" || entry === null) return null;
+    const d = entry as Record<string, unknown>;
+    const engine = d["engine"] as Record<string, unknown> | undefined;
+    if (typeof engine !== "object" || engine === null || !LOCK_ENGINES.has(String(engine["kind"]))) return null;
+    if (engine["model"] !== undefined && typeof engine["model"] !== "string") return null;
+    if (typeof d["question_hash"] !== "string") return null;
+    const labels = d["labels"];
+    if (!Array.isArray(labels) || labels.length < 2 || labels.some((l) => typeof l !== "string")) return null;
+    if (typeof d["calibration"] !== "object" || d["calibration"] === null) return null;
+    const target = d["target_false_alarm"];
+    if (typeof target !== "number" || !(target > 0 && target <= 0.5)) return null;
+    const thresholds = d["thresholds"];
+    if (typeof thresholds !== "object" || thresholds === null || Object.keys(thresholds).length === 0) return null;
+    for (const [label, limits] of Object.entries(thresholds as Record<string, unknown>)) {
+      if (!labels.includes(label) || typeof limits !== "object" || limits === null) return null;
+      const { act, unsure } = limits as Record<string, unknown>;
+      if (!isProbability(act) || !isProbability(unsure) || unsure > act) return null;
+    }
+  }
+  return value as DecisionsLock;
 }

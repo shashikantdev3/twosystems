@@ -5,7 +5,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateLock } from "../src/contracts.js";
-import { applyThresholds, builtInLock, defaultLock, lockMismatch } from "../src/lock.js";
+import { applyThresholds, asLock, builtInLock, defaultLock, lockMismatch } from "../src/lock.js";
 import { readLock } from "../src/lockfile.js";
 import { QUESTIONS, questionHash } from "../src/questions.js";
 
@@ -56,4 +56,23 @@ test("readLock returns null for a missing file, a lock for a valid one, and thro
   const bad = join(dir, "bad.lock");
   await writeFile(bad, JSON.stringify({ ...lock, holdout_rate: 2 }));
   await assert.rejects(readLock(bad), /not a valid decisions.lock: \/holdout_rate must be <= 0.5/);
+});
+
+test("asLock accepts a valid lock and refuses doubtful ones, for the plugin", () => {
+  const lock = defaultLock({ kind: "rules" });
+  assert.equal(asLock(JSON.parse(JSON.stringify(lock))) !== null, true);
+  const broken = (change: (l: Record<string, any>) => void) => {
+    const copy = JSON.parse(JSON.stringify(lock)) as Record<string, any>;
+    change(copy);
+    return asLock(copy);
+  };
+  assert.equal(broken((l) => (l["lock_version"] = 2)), null);
+  assert.equal(broken((l) => (l["decisions"]["stuck"]["thresholds"]["stuck"]["act"] = 1.5)), null);
+  assert.equal(broken((l) => (l["decisions"]["stuck"]["thresholds"]["stuck"]["unsure"] = 0.99)), null);
+  assert.equal(broken((l) => (l["decisions"]["stuck"]["thresholds"]["looping"] = { act: 0.9, unsure: 0.5 })), null);
+  assert.equal(broken((l) => (l["decisions"] = {})), null);
+  assert.equal(broken((l) => (l["decisions"]["other"] = l["decisions"]["stuck"])), null);
+  assert.equal(broken((l) => (l["holdout_rate"] = 0.9)), null);
+  assert.equal(asLock(null), null);
+  assert.equal(asLock([]), null);
 });

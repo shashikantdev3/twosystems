@@ -1,5 +1,14 @@
 // What the plugin says, in plain words. Part of twosystems, created by Shashikant.
-import { type SignalName, describe, money, thousands } from "../core/portable.js";
+import {
+  type DecisionName,
+  type DecisionsLock,
+  type Engine,
+  type SignalName,
+  describe,
+  lockMismatch,
+  money,
+  thousands,
+} from "../core/portable.js";
 import type { Settings } from "./settings.js";
 import type { Activity } from "./tracker.js";
 
@@ -48,6 +57,25 @@ export function receiptLine(
   return `twosystems: ${parts.join("; ")}.${session}`;
 }
 
+const MISMATCH: Record<string, string> = {
+  missing: "not in the lock, built-in thresholds",
+  question: "fitted for an older wording of its question, built-in thresholds",
+  engine: "fitted for another engine, built-in thresholds",
+};
+
+/** Which decisions a fitted lock applies to with the engine in use, and why not for the others. */
+function fittedText(fitted: { lock: DecisionsLock; engine: Engine }): string {
+  const names: DecisionName[] = ["stuck", "fresh_start"];
+  const parts = names.map((name) => {
+    const entry = fitted.lock.decisions[name];
+    const why = lockMismatch(entry, name, fitted.engine);
+    if (why !== null) return `${name} ${MISMATCH[why] ?? "built-in thresholds"}`;
+    const version = entry?.engine.model_version;
+    return `${name} fitted${version === undefined ? "" : ` (built-in thresholds when the model version is not ${version})`}`;
+  });
+  return `Thresholds:        decisions.lock from ${fitted.lock.created_at}: ${parts.join("; ")}. The false-alarm level setting is not used.`;
+}
+
 /** The settings and state, for /twosystems. */
 export function statusText(
   settings: Settings,
@@ -55,11 +83,13 @@ export function statusText(
   remote: boolean,
   totals: { checks: number; costUsd: number; asked: number; shown: number },
   warnings: readonly string[],
+  fitted: { lock: DecisionsLock; engine: Engine } | null = null,
 ): string {
+  const thresholds = fitted === null ? `False-alarm level: ${settings.falseAlarmBudget} (built-in thresholds, not yet fitted on data)` : fittedText(fitted);
   const lines = [
     "twosystems for Claude Code",
     `Engine:            ${engineLabel}${remote ? " (sends a short redacted summary off this machine)" : " (stays on this machine)"}`,
-    `False-alarm level: ${settings.falseAlarmBudget} (built-in thresholds, not yet fitted on data)`,
+    thresholds,
     `Holdout:           ${settings.holdoutRate}`,
     `Cache lifetime:    ${settings.cacheTtlSeconds / 60} minutes`,
     `This session:      ${totals.checks} checks, ${totals.asked} asked before a step, ${totals.shown} fresh-start suggestions, ${money(totals.costUsd)}`,

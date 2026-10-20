@@ -8,8 +8,8 @@ authors:
 repository-code: "https://github.com/shashikantdev3/twosystems"
 url: "https://github.com/shashikantdev3/twosystems"
 license: Apache-2.0
-version: 0.1.0-alpha.2
-date-released: "2026-10-19"
+version: 0.1.0-alpha.3
+date-released: "2026-10-20"
 abstract: >-
   twosystems watches AI coding agent sessions (Claude Code, GitHub Copilot,
   Codex), notices when the agent is stuck or when the work has moved on,

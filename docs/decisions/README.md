@@ -10,3 +10,4 @@ Short records of decisions with lasting consequences: what was decided, why, and
 | [0004](0004-apache-2-license.md) | Apache License 2.0 | Accepted |
 | [0005](0005-hook-command-and-session-notes.md) | One hook command, with local session notes | Accepted |
 | [0006](0006-claude-code-plugin-as-a-mod.md) | The Claude Code plugin is a mod, with one event file per session | Accepted |
+| [0007](0007-calibration-from-replayed-sessions.md) | Calibration from replayed sessions, split between the core and the Python package | Accepted |

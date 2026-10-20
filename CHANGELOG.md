@@ -6,6 +6,30 @@ All notable changes to twosystems are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-10-20
+
+npm `twosystems` 0.1.0-alpha.3, PyPI `twosystems` 0.1.0a3 and the Claude Code plugin 0.1.0-alpha.3: the calibration kit.
+
+### Added (Sprint 3: calibration kit)
+
+- `twosystems moments` (npm): reads saved Claude Code sessions line by line and replays each one at the Claude Code plugin's check points (before a tool call, after a turn, after an idle spell, and when a typed prompt would be held), with the window the session ran with, keeping every moment where twosystems would have asked its decision model: the redacted summary it would have sent and a few redacted lines of what happened next. Every moment gets a free rules score; `--score` and `--rescore` ask the configured decision model. Labels survive a new export, even when the summary comes out different; copies from forked or resumed sessions are dropped unless labelled; a damaged moments file, or one with an id used twice, is never overwritten; a score that cannot be stored is dropped, never the moment.
+- `twosystems-calibrate label`: one key per moment, one session at a time in turn in a fixed shuffled order, the question worded for what started the check, saved at every answer onto the file as it is on disk, with skip, undo and quit; the model's answer is hidden unless `--show-model` is given.
+- `twosystems-calibrate fit`: one act threshold per decision, chosen by fixed-sequence testing from 1.00 down so that the one-sided Clopper-Pearson upper bound on false alarms stays at the target (default 5% at 95% confidence) with the confidence kept honest, on the answers of one model version; tested on a quarter of the sessions kept aside by a hash of the session id, with a verdict only when the test has enough acts. Reproducible: the same labels give the same `decisions.lock`. With too few labels it says how many acts it needs.
+- `twosystems-calibrate check`: fails on a reworded question, a new model version, drift between each moment's last two scorings, or false alarms above the target.
+- `twosystems-calibrate report`: one self-contained HTML page with the labels, what each act threshold would do, the fitted thresholds and what twosystems did.
+- `twosystems-calibrate validate moments FILE`.
+- A new shared format, `moments.jsonl` (`schemas/moment.schema.json`), validated by both languages with the same messages, written by both under one lock file and readable by its owner only, and shared threshold cases so the Python fit and the TypeScript runtime agree on what a threshold does.
+- The npm package exports `validateMoment`, `validateMomentText` and the moment types.
+- Text is cut on whole characters everywhere it is stored or sent, and half characters in the input are replaced, so an emoji at a cut point can no longer leave invalid text behind.
+- Decision record 0007: calibration from replayed sessions, split between the core and the Python package.
+
+### Changed
+
+- The Claude Code plugin uses a fitted `~/.twosystems/decisions.lock` when there is one (checked by hand, since the schema validator cannot run inside Claude Code), and `/twosystems` says per decision whether it applies; the false-alarm level setting then no longer applies.
+- A lock entry fitted on another model version than the one answering is not used: the built-in thresholds apply and the decision is recorded as a lock mismatch.
+- Thresholds apply to the probabilities rounded to four places, as the event log records them.
+- A decision missing from a lock keeps the built-in thresholds without being recorded as a lock mismatch.
+
 ## [0.1.0-alpha.2] - 2026-10-19
 
 npm `twosystems` 0.1.0-alpha.2, PyPI `twosystems` 0.1.0a2, and the first Claude Code plugin.

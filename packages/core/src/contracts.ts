@@ -9,8 +9,8 @@ import type { Ajv2020 as Ajv2020Type } from "ajv/dist/2020.js";
 import type { ErrorObject, ValidateFunction } from "ajv";
 
 export * from "./model.js";
-import { MAX_EVENT_BYTES, MAX_LOCK_BYTES } from "./model.js";
-import type { DecisionsLock, ValidationResult } from "./model.js";
+import { MAX_EVENT_BYTES, MAX_LOCK_BYTES, MAX_MOMENT_BYTES } from "./model.js";
+import type { DecisionsLock, Moment, ValidationResult } from "./model.js";
 
 // RFC 3339 date-time with a mandatory time zone. Checked by hand rather than
 // with ajv-formats so that this file and the Python package apply exactly the
@@ -102,6 +102,7 @@ function ajv(): Ajv2020Type {
 
 let compiledEvent: ValidateFunction | undefined;
 let compiledLock: ValidateFunction | undefined;
+let compiledMoment: ValidateFunction | undefined;
 function eventValidator(): ValidateFunction {
   compiledEvent ??= ajv().compile(loadSchema("events.schema.json"));
   return compiledEvent;
@@ -109,6 +110,10 @@ function eventValidator(): ValidateFunction {
 function lockValidator(): ValidateFunction {
   compiledLock ??= ajv().compile(loadSchema("decisions-lock.schema.json"));
   return compiledLock;
+}
+function momentValidator(): ValidateFunction {
+  compiledMoment ??= ajv().compile(loadSchema("moment.schema.json"));
+  return compiledMoment;
 }
 
 const SAFE_FIELD = /^[A-Za-z0-9_.-]{1,32}$/;
@@ -207,6 +212,8 @@ export const MAX_DEPTH = 32;
 export const MAX_EVENT_VALUES = 4_096;
 /** Most values in one decisions.lock. The largest real lock holds about 33,000 (isotonic breakpoints). */
 export const MAX_LOCK_VALUES = 65_536;
+/** Most JSON values one moment may hold. */
+export const MAX_MOMENT_VALUES = 4_096;
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
@@ -409,6 +416,7 @@ function shapeProblem(value: unknown, limits: Size): string | null {
 
 const EVENT_LIMITS: Size = { values: MAX_EVENT_VALUES, bytes: MAX_EVENT_BYTES };
 const LOCK_LIMITS: Size = { values: MAX_LOCK_VALUES, bytes: MAX_LOCK_BYTES };
+const MOMENT_LIMITS: Size = { values: MAX_MOMENT_VALUES, bytes: MAX_MOMENT_BYTES };
 
 /** Validate one event object against events.schema.json. */
 export function validateEvent(value: unknown): ValidationResult {
@@ -492,4 +500,37 @@ export function validateLockText(text: string): ValidationResult {
   if (error !== null) return { ok: false, errors: [error] };
   const parsed = parseJson(body);
   return parsed.ok ? validateLock(parsed.value) : { ok: false, errors: [parsed.error] };
+}
+
+/**
+ * Validate one moment object (moment.schema.json), then the rules a schema
+ * cannot express: the label and every scored label are among the labels, and
+ * labelled_at is present exactly when label is.
+ */
+export function validateMoment(value: unknown): ValidationResult {
+  const problem = shapeProblem(value, MOMENT_LIMITS);
+  if (problem !== null) return { ok: false, errors: [problem] };
+  const validate = momentValidator();
+  if (!validate(value)) return { ok: false, errors: schemaErrors(validate) };
+  const moment = value as Moment;
+  const errors: string[] = [];
+  if (moment.label !== undefined && !moment.labels.includes(moment.label)) errors.push("/label is not one of the labels");
+  if ((moment.label === undefined) !== (moment.labelled_at === undefined)) {
+    errors.push("/labelled_at must be present exactly when label is");
+  }
+  moment.scores.forEach((score, index) => {
+    for (const label of Object.keys(score.probabilities)) {
+      if (!moment.labels.includes(label)) errors.push(`/scores/${index}/probabilities/${label} is not one of the labels`);
+    }
+  });
+  return { ok: errors.length === 0, errors: tidy(errors) };
+}
+
+/** Parse and validate one moment from JSON text. A leading byte order mark is ignored. */
+export function validateMomentText(text: string): ValidationResult {
+  const body = stripBom(text);
+  const error = precheck(body, MAX_MOMENT_BYTES);
+  if (error !== null) return { ok: false, errors: [error] };
+  const parsed = parseJson(body);
+  return parsed.ok ? validateMoment(parsed.value) : { ok: false, errors: [parsed.error] };
 }

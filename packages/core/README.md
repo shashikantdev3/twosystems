@@ -4,7 +4,7 @@
 
 Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**. Apache License 2.0.
 
-> **Alpha (0.1.0-alpha.2).** The engine, the `twosystems` command and the hook adapters are built and tested against recorded hook payloads. They have not yet been used for long in real sessions, and the thresholds are cautious defaults, not fitted on data. Expect changes. Feedback and issues are welcome: https://github.com/shashikantdev3/twosystems/issues
+> **Alpha (0.1.0-alpha.3).** The engine, the `twosystems` command and the hook adapters are built and tested against recorded hook payloads. They have not yet been used for long in real sessions, and the thresholds are cautious defaults, not fitted on data. Expect changes. Feedback and issues are welcome: https://github.com/shashikantdev3/twosystems/issues
 >
 > **Using Claude Code?** The [twosystems plugin](https://github.com/shashikantdev3/twosystems/tree/main/packages/claude-code) is the better choice there: it runs inside Claude Code, needs no Node.js, and reads exact token counts.
 
@@ -47,8 +47,21 @@ At OpenRouter's listed price on 19 October 2026 ($0.042 per million input tokens
 
 Other settings: `TWOSYSTEMS_HOLDOUT` (default 0.1), `TWOSYSTEMS_TIMEOUT_MS` (default 5000, at most 10000), `TWOSYSTEMS_CACHE_TTL_S` (default 3600 for Claude Code on a Claude plan, 300 otherwise), `TWOSYSTEMS_HOME` (default `~/.twosystems`), `TWOSYSTEMS_LOCK`, `OLLAMA_HOST`. Run `twosystems --help` for the full list, and `twosystems doctor --live` to try the decision model once.
 
+## Calibrate on your own sessions
+
+`twosystems moments` reads your saved Claude Code sessions (`~/.claude/projects`, or `--from` a folder or file) and replays each one the way the Claude Code plugin watches a live session (before a tool call, after a turn, after an idle spell, and when it would hold a typed prompt). Wherever it would have asked its decision model, it keeps a moment in `~/.twosystems/moments.jsonl`: the redacted summary the model would have read, a few redacted lines of what happened next, and a free score from the rules engine. Running it again adds new moments and keeps labels already given, even while `twosystems-calibrate label` is running. `--days <n>` reads only recent sessions; `--window <tokens>` sets the context window when the one the session ran with is not the one inferred (1M tokens when a request went over 200,000, else 200,000).
+
+```bash
+twosystems moments                 # find moments
+twosystems moments --score         # and ask the decision model about the new ones (remote: sends each summary)
+twosystems moments --rescore --labelled-only   # ask again, before twosystems-calibrate check
+```
+
+Then label and fit them with the Python tools (`pip install --pre twosystems`): see [twosystems-calibrate](https://github.com/shashikantdev3/twosystems/blob/main/python/README.md). The fitted `decisions.lock` goes to `~/.twosystems/`, where this command and the Claude Code plugin read it.
+
 ## Privacy
 
+- `moments.jsonl` (only if you run `twosystems moments`) holds redacted text from your saved sessions, because labelling needs to see what happened. It stays on your machine, readable by you only; `--score` sends each moment's short summary to your decision model, as a live check would.
 - The event log (`~/.twosystems/events.jsonl`, plus one file per session in `~/.twosystems/events.d/` from the Claude Code plugin) holds no prompts, code or file contents: only decisions, sizes, costs and a hash of what was judged. `twosystems receipt` reads both.
 - Short session notes (recent prompts, commands and errors, redacted and cut to 400 characters) are kept in `~/.twosystems/sessions/` so the checks can see the last few steps. They never leave your machine and are removed once unused for seven days (checked once a day while hooks run).
 - With a remote engine, only the redacted summary of the moment is sent, to the provider you chose.
@@ -74,7 +87,7 @@ const result = await evaluate({
 // result.show is "pause", "clear" or "compact" when a suggestion should be shown.
 ```
 
-Also exported: the validators for the shared file formats (`validateEvent`, `validateEventsJsonl`, `validateLock`, `parseJson`), the engines, `buildReceipt`, `redact`, and the JSON Schemas as `twosystems/schemas/*`.
+Also exported: the validators for the shared file formats (`validateEvent`, `validateEventsJsonl`, `validateLock`, `validateMoment`, `parseJson`), the engines, `buildReceipt`, `redact`, and the JSON Schemas as `twosystems/schemas/*`.
 
 ## Links
 

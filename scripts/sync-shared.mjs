@@ -17,10 +17,12 @@ const copies = [
   ["NOTICE", "packages/core/NOTICE"],
   ["schemas/events.schema.json", "packages/core/schemas/events.schema.json"],
   ["schemas/decisions-lock.schema.json", "packages/core/schemas/decisions-lock.schema.json"],
+  ["schemas/moment.schema.json", "packages/core/schemas/moment.schema.json"],
   ["LICENSE", "python/LICENSE"],
   ["NOTICE", "python/NOTICE"],
   ["schemas/events.schema.json", "python/src/twosystems/schemas/events.schema.json"],
   ["schemas/decisions-lock.schema.json", "python/src/twosystems/schemas/decisions-lock.schema.json"],
+  ["schemas/moment.schema.json", "python/src/twosystems/schemas/moment.schema.json"],
   ["LICENSE", "packages/claude-code/LICENSE"],
   ["NOTICE", "packages/claude-code/NOTICE"],
 ];

@@ -1,7 +1,7 @@
 // Turning what an agent did into short, redacted observations: shared by the
 // hook command and the Claude Code plugin.
 // Part of twosystems, created by Shashikant.
-import { redact } from "./redact.js";
+import { clip, redact } from "./redact.js";
 import type { Observation } from "./signals.js";
 
 type Json = Record<string, unknown>;
@@ -44,8 +44,8 @@ export function toolCommand(input: Json | undefined): string | undefined {
 
 /** Redact and shorten text for storage. Line breaks are kept, so error lines stay apart. */
 export function shorten(text: string): string {
-  const clean = redact(text.slice(0, OBSERVATION_LIMITS.textChars * 4));
-  return clean.length <= OBSERVATION_LIMITS.textChars ? clean : `${clean.slice(0, OBSERVATION_LIMITS.textChars - 3)}...`;
+  const clean = redact(clip(text, OBSERVATION_LIMITS.textChars * 4));
+  return clean.length <= OBSERVATION_LIMITS.textChars ? clean : `${clip(clean, OBSERVATION_LIMITS.textChars - 3)}...`;
 }
 
 /** Copy an observation with its text redacted and shortened, ready to be stored. */
@@ -53,7 +53,7 @@ export function storable(observation: Observation): Observation {
   if (observation.kind === "prompt") return { ...observation, text: shorten(observation.text) };
   if (observation.kind === "tool") {
     const copy = { ...observation };
-    copy.tool = shorten(observation.tool).slice(0, 80);
+    copy.tool = clip(shorten(observation.tool), 80);
     if (observation.command !== undefined) copy.command = shorten(observation.command);
     if (observation.error !== undefined) copy.error = shorten(observation.error);
     if (observation.files !== undefined) copy.files = observation.files.slice(0, 20).map(shorten);

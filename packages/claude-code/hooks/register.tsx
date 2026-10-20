@@ -22,15 +22,18 @@ import {
   type DecisionName,
   type Evaluation,
   type FetchLike,
+  type LoadedLock,
   type Observation,
   SIGNAL_RULES,
   type TwoSystemsEvent,
+  asLock,
   type UserActionKind,
   buildReceipt,
   evaluate,
   exactUsageRecord,
   formatReceipt,
   freshStartSignals,
+  lockHash,
   money,
   toolCommand,
   toolFiles,
@@ -89,6 +92,8 @@ let running = false;
 let idleTimer: { cancel: () => void } | null = null;
 const warnings: string[] = [];
 let started: Promise<void> | null = null;
+/** A fitted decisions.lock from the data folder, read once per load; null for the built-in thresholds. */
+let fitted: LoadedLock | null = null;
 /**
  * The latest permission mode Claude Code reported for each loop. Where an
  * organization manages Claude Code, these reports do not reach a plugin the
@@ -125,6 +130,7 @@ function ready($: Host): Promise<void> {
       userProfile: await $.env.get("USERPROFILE").catch(() => undefined),
     });
     log = new EventLog(home);
+    fitted = await readFittedLock($, home);
     agentVersion = await $.session
       .version()
       .then((v) => v.version)
@@ -135,6 +141,22 @@ function ready($: Host): Promise<void> {
     if (/twosystems(\.cmd|\.ps1|\.js)?["']?\s+hook\b/.test(hooks)) warnings.push(MANUAL_HOOKS_WARNING);
   })();
   return started;
+}
+
+/** The decisions.lock twosystems-calibrate fit wrote, if there is one and it holds together. */
+async function readFittedLock($: Host, folder: string | null): Promise<LoadedLock | null> {
+  if (folder === null) return null;
+  const path = `${folder}/decisions.lock`;
+  if (!(await $.fs.exists(path).catch(() => false))) return null;
+  try {
+    const text = (await $.fs.read(path)) as string;
+    const lock = asLock(JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text));
+    if (lock !== null) return { lock, hash: lockHash(lock), source: path };
+  } catch {
+    // Reported below.
+  }
+  warnings.push("decisions.lock in the twosystems folder is not valid, so the built-in thresholds are used. Check it with twosystems-calibrate validate lock.");
+  return null;
 }
 
 async function refreshWindow($: Host): Promise<void> {
@@ -210,7 +232,7 @@ async function decide($: Host, name: DecisionName, observations: readonly Observ
     ...(newPrompt === undefined ? {} : { newPrompt }),
     now,
     engine,
-    lock: thresholdsFor(engine, settings.falseAlarmBudget),
+    lock: fitted ?? thresholdsFor(engine, settings.falseAlarmBudget),
     holdoutRate: settings.holdoutRate,
     timeoutMs: settings.timeoutMs,
     cacheTtlSeconds: settings.cacheTtlSeconds,
@@ -828,7 +850,7 @@ export const register: Register = (on, received) => {
     const days = Number.isFinite(asked) && asked > 0 ? Math.min(asked, 3650) : 30;
     const engine = makeEngine(settings, hostFetch($));
     const label = `${engine.info.kind}${engine.info.model ? ` (${engine.info.model})` : ""}${settings.engine === "openrouter" && settings.openRouterKey === undefined ? ", no key set" : ""}`;
-    const parts = [statusText(settings, label, engine.remote, tracker.totals, [...warnings, ...log.problems.slice(-3)])];
+    const parts = [statusText(settings, label, engine.remote, tracker.totals, [...warnings, ...log.problems.slice(-3)], fitted === null ? null : { lock: fitted.lock, engine: engine.info })];
     const now = await $.clock.now();
     const { events, skipped, notes } = await log.readAll(hostFiles($), home);
     const receipt = buildReceipt(events.filter((event) => Date.parse(event.ts) >= now - days * 86_400_000));

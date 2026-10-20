@@ -4,7 +4,7 @@
 
 Created and maintained by **[Shashikant](https://github.com/shashikantdev3)**. Apache License 2.0.
 
-> **Alpha (0.1.0-alpha.2).** Built and tested with Claude Code 2.1.303's plugin test kit, and checked with real model requests, but not yet used for long in daily work. Thresholds are cautious defaults until calibration ships. Feedback and issues: https://github.com/shashikantdev3/twosystems/issues
+> **Alpha (0.1.0-alpha.3).** Built and tested with Claude Code 2.1.303's plugin test kit, and checked with real model requests, but not yet used for long in daily work. Thresholds are cautious defaults until you fit your own (see Settings). Feedback and issues: https://github.com/shashikantdev3/twosystems/issues
 
 ## Install
 
@@ -49,12 +49,14 @@ Run `/config` and look for the twosystems rows, or set them when you install:
 | OpenRouter API key | empty | Kept in your system's secure storage. Empty uses `OPENROUTER_API_KEY` from your environment, if set. |
 | Decision model | empty | Empty for the default. For example `typesafe/jev-1.14`, or an Ollama model such as `nimble`. |
 | Ollama address | `http://127.0.0.1:11434` | For the `ollama` engine. |
-| False-alarm level | low | How readily it interrupts. Until calibration ships this moves the built-in thresholds (medium lowers them by 0.05, high by 0.10); it is not yet a measured rate. |
+| False-alarm level | low | How readily it interrupts. It moves the built-in thresholds (medium lowers them by 0.05, high by 0.10); it is not a measured rate. Not used once you fit your own thresholds (below). |
 | Holdout share | 0.1 | Share of suggestions held back on purpose, so the receipt can measure what the shown ones saved. |
 | Prompt cache lifetime | 60 minutes | 60 on a Claude plan, 5 with an API key or a cloud provider. |
 | Ask before a new task in a large conversation | on | Holds such a prompt until you choose. |
 | Receipt line under answers | on | |
 | Decision model timeout | 5000 ms | |
+
+**Your own thresholds.** If `~/.twosystems/decisions.lock` exists (written by `twosystems-calibrate fit` from moments you labelled), the plugin uses it from its next start instead of the built-in thresholds, and `/twosystems` says per decision whether it applies. A decision the lock does not cover, or one fitted for another engine or question wording, keeps the built-in thresholds, and so does a check whose model reports a version other than the one the lock was fitted on. See [calibrating on your own sessions](https://github.com/shashikantdev3/twosystems/blob/main/python/README.md).
 
 At OpenRouter's listed price ($0.042 per million input tokens, output free), one decision costs about $0.00001 to $0.00003, and decisions run only when a rule fires.
 

@@ -13,6 +13,7 @@ export {
   type LoadedLock,
   type Thresholded,
   applyThresholds,
+  asLock,
   builtInLock,
   defaultLock,
   lockHash,
@@ -32,7 +33,7 @@ export {
   promptOverlap,
   stuckSignals,
 } from "./signals.js";
-export { REDACTED, looksRandom, redact, redactAndClip } from "./redact.js";
+export { REDACTED, clip, looksRandom, redact, redactAndClip, wellFormed } from "./redact.js";
 export { STATE_LIMITS, type State, type StateInput, buildState } from "./state.js";
 export {
   type DecisionEngine,
